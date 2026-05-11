@@ -1,0 +1,1772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Dinosaur Card Game</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Georgia', 'Times New Roman', serif;
+      background: #2d2418 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" opacity="0.08"><path d="M20 70 L30 50 L40 70 L50 40 L60 70 L70 30 L80 70" stroke="%23bca37b" fill="none" stroke-width="2"/><circle cx="10" cy="20" r="3" fill="%23bca37b"/><circle cx="90" cy="10" r="5" fill="%23bca37b"/></svg>');
+      color: #3e2e1a; display: flex; justify-content: center; min-height: 100vh; padding: 10px;
+    }
+            .app { max-width: 1200px; width: 100%; position: relative; height: 100vh; overflow-y: auto; }
+    h1 { text-align: center; color: #d6b17e; text-shadow: 2px 2px 0 #2d1e0f; margin-bottom: 6px; font-size: 1.8rem; position: relative; }
+    .credit { text-align: center; color: white; font-size: 1rem; margin-top: 4px; }
+    h2 { color: #8b6b3c; margin: 6px 0; font-size: 1.1rem; }
+    .card {
+      background: #f5eedc url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" opacity="0.08"><rect x="5" y="5" width="90" height="90" fill="none" stroke="%23a98b5f" stroke-width="1"/></svg>');
+      border: 2px solid #8b6b3c; border-radius: 12px; padding: 10px; margin: 6px 0;
+      box-shadow: 3px 3px 8px rgba(0,0,0,0.4), inset 0 0 12px rgba(255,248,220,0.5);
+    }
+    .flex { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .stat { background: #e8dcc4; padding: 2px 7px; border-radius: 7px; font-size: 0.68rem; border: 1px solid #b39662; color: #3e2e1a; font-weight: bold; }
+    .hp-bar-outer { background: #3d2e1a; border-radius: 5px; height: 14px; margin: 3px 0; border: 1px solid #1a0f05; position: relative; overflow: hidden; display: flex; }
+    .hp-fill { height: 100%; transition: width 0.2s; }
+    .hp-wound { height: 100%; background: #9e9e9e; }
+    .hp-dmg-flash { position: absolute; top: 0; height: 100%; background: #ff7043; opacity: 0.85; transition: width 0.3s ease-out; pointer-events: none; }
+            .move-btn {
+      background: #e8dcc4; border: 2px solid #8b6b3c; color: #3e2e1a; padding: 5px 10px; border-radius: 16px;
+      font-size: 0.75rem; cursor: pointer; margin: 2px; font-family: inherit; box-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    }
+    .move-btn.selected { background: #facc15; color: #000; font-weight: bold; border-color: #b38b2a; }
+    .move-btn:disabled { opacity: 0.45; pointer-events: none; }
+    .move-btn.swap-blocked { border-color: #c44; }
+    .move-btn.swap-blocked::after { content: '❌'; font-size: 11px; margin-left: 3px; color: #c44; }
+    .move-desc { font-size: 0.6rem; font-style: italic; color: #6b5a3e; display: block; }
+    .cooldown-num { font-size: 0.55rem; color: #b44; background: #fff; border-radius: 50%; width: 13px; height: 13px; display: inline-block; text-align: center; line-height: 13px; border: 1px solid #b44; margin-left: 2px; }
+    .btn { background: #d6b17e; border: none; padding: 10px 18px; border-radius: 20px; font-weight: bold; cursor: pointer; margin: 3px; box-shadow: 2px 2px 4px rgba(0,0,0,0.4); color: #2d1e0f; font-family: inherit; }
+    .btn:disabled { background: #8a7a63; color: #4d3e2b; }
+    .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 10; }
+    .overlay-box { background: #f5eedc; border-radius: 18px; padding: 20px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; border: 2px solid #8b6b3c; color: #3e2e1a; text-align: left; }
+    .help-close { float: right; font-weight: bold; font-size: 1.2rem; cursor: pointer; color: #8b6b3c; margin-left: 10px; }
+    .victory-text { font-size: 1.6rem; margin: 8px 0; color: #a17222; }
+    .checkbox-grid { display: flex; flex-wrap: wrap; gap: 3px; max-height: 200px; overflow-y: auto; margin: 6px 0; }
+    .checkbox-grid label { background: #e8dcc4; padding: 3px 7px; border-radius: 10px; font-size: 0.65rem; display: flex; align-items: center; gap: 3px; cursor: pointer; border: 1px solid #b39662; color: #3e2e1a; }
+    .rarity-primary { color: #c0392b; font-weight: bold; }
+    .rarity-secondary { color: #e67e22; font-weight: bold; }
+    .rarity-tertiary { color: #16a085; font-weight: bold; }
+    .rarity-quaternary { color: #2980b9; font-weight: bold; }
+    .rarity-legendary { color: #8e44ad; font-weight: bold; }
+    .step-log { background: #faf3e4; border-radius: 6px; padding: 6px; flex: 1; max-height: 100px; overflow-y: auto; font-size: 0.85rem; font-family: monospace; border: 1px solid #b39662; color: #2d1e0f; }
+    .resolution-row { display: flex; gap: 6px; align-items: flex-start; }
+    .step-btn { min-width: 120px; white-space: nowrap; font-size: 0.75rem; }
+    .backup-select { background: #e2d5b7; border: 1px solid #8b6b3c; padding: 5px 8px; border-radius: 10px; cursor: pointer; margin: 2px; font-size: 0.7rem; }
+    .backup-select.highlight { background: #facc15; border-color: #b38b2a; font-weight: bold; }
+    .locked { color: #888; font-style: italic; }
+    .rarity-btn { padding: 8px 16px; border-radius: 16px; border: 2px solid #8b6b3c; cursor: pointer; font-weight: bold; font-family: inherit; margin: 3px; }
+    .rarity-btn:hover { opacity: 0.85; }
+    .bottom-left-help { position: fixed; bottom: 15px; left: 15px; z-index: 5; }
+    .title-screen { text-align: center; padding: 40px 0; }
+    .title-screen h1 { font-size: 3rem; color: #d6b17e; text-shadow: 3px 3px 0 #2d1e0f; margin-bottom: 0; }
+    .title-screen .subtitle { font-size: 1rem; color: white; margin-bottom: 30px; }
+    .mode-btn { background: #d6b17e; color: #2d1e0f; border: none; padding: 15px 30px; border-radius: 30px; font-size: 1.2rem; font-weight: bold; cursor: pointer; margin: 10px; box-shadow: 2px 2px 4px rgba(0,0,0,0.4); }
+    .mode-btn:hover { opacity: 0.9; }
+    /* ---- Battle layout variants ---- */
+    .battle-main { display:flex; gap:24px; }
+    .battle-main .cards-area { flex:3; min-width:0; }
+    .battle-main .controls-area { width:200px; flex-shrink:0; display:flex; flex-direction:column; gap:4px; }
+
+        .layout-phone .battle-main {
+      flex-direction: column;
+      gap: 4px;
+      font-size: 0.7rem;
+    }
+    .layout-phone .battle-main .cards-area {
+      flex: unset; min-width: unset;
+    }
+    .layout-phone .battle-main .controls-area {
+      width: 100%; flex-direction: row; flex-wrap: wrap; gap: 3px;
+    }
+    .layout-phone .battle-main .controls-area > * {
+      flex: 1 1 auto; min-width: 70px; font-size: 0.7rem;
+    }
+    .layout-phone .card {
+      padding: 4px 6px;
+      margin: 2px 0;
+    }
+    .layout-phone .card .flex {
+      gap: 4px;
+    }
+    .layout-phone .stat {
+      font-size: 0.6rem;
+      padding: 1px 5px;
+    }
+    .layout-phone .hp-bar-outer {
+      height: 10px;
+      margin: 2px 0;
+    }
+    .layout-phone .move-btn {
+      font-size: 0.65rem;
+      padding: 3px 7px;
+      margin: 1px;
+    }
+    .layout-phone .move-desc {
+      font-size: 0.55rem;
+    }
+    .layout-phone .btn {
+      font-size: 0.7rem;
+      padding: 6px 10px;
+    }
+    .layout-phone .dino-image {
+      width: 55px !important;
+      height: 55px !important;
+    }
+    .layout-phone .player-label {
+      font-size: 0.6rem !important;
+    }
+    .layout-phone .step-log {
+      font-size: 0.65rem;
+      max-height: 60px;
+    }
+    .layout-phone .resolution-row {
+      flex-direction: column;
+      gap: 2px;
+    }
+    .layout-phone .bottom-left-help {
+      bottom: 5px;
+      left: 5px;
+}
+    .layout-phone .player-label { display: none; }
+  </style>
+</head>
+<body>
+<div class="app" id="app">
+  <div id="title-screen" style="display:block;">
+    <div class="title-screen">
+      <h1>Dinosaur Card Game</h1>
+      <div class="subtitle">Designed by YeetTheFeet</div>
+      <label style="color:white; font-size:1rem; display:block; margin-bottom:15px;">
+        <input type="checkbox" id="layout-toggle" onchange="switchLayout()"> 📱 Phone Mode
+      </label>
+      <button class="mode-btn" onclick="showModeScreen()">▶ Play</button>
+<br>
+<button class="mode-btn" onclick="showCatalog()" style="background:#5a4a3a; color:#fff;">📖 Catalog</button>
+<br>
+<button class="mode-btn" onclick="showHelp()" style="background:#8b6b3c; color:#fff;">❓ Help</button>
+    </div>
+  </div>
+  <div id="mode-screen" style="display:none;">
+    <div class="card" style="text-align:center">
+      <h2>Select Game Mode</h2>
+      <button class="mode-btn" onclick="startLocalGame()">⚔️ vs. Local</button>
+      <br>
+      <button class="mode-btn" onclick="startAIGame()">🤖 vs. AI</button>
+    </div>
+  </div>
+  <div id="help-overlay" class="overlay" style="display:none;">
+    <div class="overlay-box">
+      <span class="help-close" onclick="closeHelp()">✕</span>
+      <h2>How to Play</h2>
+      <div style="font-size:0.8rem; line-height:1.4;">
+        <p><b>Objective:</b> Defeat all opponent's dinosaurs.</p>
+        <p><b>Turns:</b> Both players secretly choose a move. Higher SPD goes first.</p>
+        <p><b>Moves:</b> Strike (basic attack), Pass (do nothing), Swap (switch active dino), and unique abilities.</p>
+        <p><b>Abilities:</b> Each dinosaur has special moves with cooldowns.</p>
+        <p><b>Cooldowns:</b> After using an ability, you must wait the shown number of turns before using it again.</p>
+        <p><b>Stats:</b> ⚡Speed determines turn order. ⚔️Attack and 🛡️Defense affect damage.</p>
+        <p><b>Status Effects:</b> Bleed (🩸), Venom (🖤), Wound (🩶), Dodge (💨), Stun (💫), Regeneration (🩷), etc.</p>
+        <p><b>Swapping:</b> You can switch to a backup dinosaur. Some dinosaurs prevent swapping.</p>
+        <p><b>Winning:</b> Reduce all opponent HP to 0.</p>
+        <p><b>AI Mode:</b> The computer opponent chooses randomly.</p>
+        <p>Use the "Lock In" button to confirm your move. Then watch the resolution step by step.</p>
+      </div>
+    </div>
+  </div>
+  <div id="name-input-screen" style="display:none">
+    <div class="card" style="text-align:center">
+      <h2>Enter Player Names</h2>
+      <input type="text" id="p1-name-input" placeholder="Player 1" maxlength="12" style="padding:8px;border-radius:8px;border:1px solid #8b6b3c;background:#faf3e4;color:#3e2e1a;margin:4px;width:80%"><br>
+      <input type="text" id="p2-name-input" placeholder="Player 2" maxlength="12" style="padding:8px;border-radius:8px;border:1px solid #8b6b3c;background:#faf3e4;color:#3e2e1a;margin:4px;width:80%"><br>
+      <button class="btn" id="skip-names-btn">Skip</button>
+      <button class="btn" id="confirm-names-btn">Next →</button>
+    </div>
+  </div>
+  <div id="ai-name-screen" style="display:none">
+    <div class="card" style="text-align:center">
+      <h2>Enter Your Name</h2>
+      <input type="text" id="ai-p1-name-input" placeholder="Player 1" maxlength="12" style="padding:8px;border-radius:8px;border:1px solid #8b6b3c;background:#faf3e4;color:#3e2e1a;margin:4px;width:80%"><br>
+      <button class="btn" id="ai-confirm-name-btn">Next →</button>
+    </div>
+  </div>
+  <div id="rarity-screen" style="display:none">
+    <div class="card" style="text-align:center">
+      <h2>Select Rarity Tier</h2>
+      <div id="rarity-options"></div>
+    </div>
+  </div>
+  <div id="setup-screen" style="display:none">
+    <div class="card">
+      <b id="p1-label">P1</b> <span id="p1-count">0/6</span>
+      <button class="btn" onclick="randomizePlayer(1)" style="float:right; padding:4px 8px; font-size:0.7rem;">🎲 Randomize</button>
+      <div class="checkbox-grid" id="p1-grid"></div>
+    </div>
+    <div class="card">
+      <b id="p2-label">P2</b> <span id="p2-count">0/6</span>
+      <button class="btn" onclick="randomizePlayer(2)" style="float:right; padding:4px 8px; font-size:0.7rem;">🎲 Randomize</button>
+      <div class="checkbox-grid" id="p2-grid"></div>
+    </div>
+    <button class="btn" id="start-btn" disabled>⚔️ Build Decks</button>
+  </div>
+  <div id="active-select-screen" style="display:none">
+    <div class="card"><h2 id="active-select-msg"></h2><div id="active-select-cards"></div></div>
+  </div>
+        <div id="battle-screen" style="display:none">
+    <div class="battle-main">
+      <!-- LEFT: Dinosaur cards -->
+      <div class="cards-area">
+        <div style="display:flex; align-items:center; gap:6px; margin:6px 0;">
+          <span class="player-label" style="color:#e74c3c; font-weight:bold; font-size:0.75rem; text-shadow:1px 1px 0 #2d1e0f; white-space:nowrap;">Player One</span>
+          <div class="card" id="p1-panel" style="flex:1;"></div>
+          <div class="dino-image" style="flex-shrink:0; width:110px; height:110px; display:flex; align-items:center; justify-content:center;">
+            <img id="p1-img" src="" style="max-width:100%; max-height:100%; object-fit:contain; border-radius:10px; border:2px solid #8b6b3c; background:#faf3e4;" />
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; margin:6px 0;">
+          <div class="dino-image" style="flex-shrink:0; width:110px; height:110px; display:flex; align-items:center; justify-content:center;">
+            <img id="p2-img" src="" style="max-width:100%; max-height:100%; object-fit:contain; border-radius:10px; border:2px solid #8b6b3c; background:#faf3e4;" />
+          </div>
+          <div class="card" id="p2-panel" style="flex:1;"></div>
+          <span class="player-label" style="color:#3498db; font-weight:bold; font-size:0.75rem; text-shadow:1px 1px 0 #2d1e0f; white-space:nowrap;">Player Two</span>
+        </div>
+      </div>
+      <!-- RIGHT: Controls sidebar -->
+      <div class="controls-area">
+        <button class="btn" id="lock-btn" disabled style="width:100%;">🔒 Lock In</button>
+        <div id="turn-resolution" style="display:none;">
+          <div class="resolution-row" style="flex-direction:column; gap:4px;">
+            <button class="btn step-btn" id="next-step-btn" style="width:100%;">Next Step</button>
+            <div class="step-log" id="step-log" style="max-height:120px;"></div>
+          </div>
+          <button class="btn" id="next-turn-btn" style="display:none; width:100%;">Next Turn ➡️</button>
+        </div>
+        <div class="step-log" id="battle-log" style="max-height:120px;"></div>
+      </div>
+    </div>
+    <div class="bottom-left-help">
+      <button class="btn" onclick="showHelp()" style="padding:6px 12px; font-size:0.7rem;">❓ Help</button>
+    </div>
+  </div>
+  <div id="replace-overlay" class="overlay" style="display:none">
+    <div class="overlay-box"><h2 id="replace-msg"></h2><div id="replace-options"></div></div>
+  </div>
+    <div id="victory-overlay" class="overlay" style="display:none">
+    <div class="overlay-box" style="max-width:600px; max-height:90vh; text-align:left;">
+      <div class="victory-text" id="victory-msg" style="text-align:center;"></div>
+      <div class="step-log" id="victory-log" style="max-height:40vh; overflow-y:auto; margin-top:10px; font-size:0.85rem;"></div>
+      <div style="text-align:center; margin-top:10px;">
+        <button class="btn" onclick="location.reload()">🔄 New Battle</button>
+      </div>
+    </div>
+  </div>
+<div id="catalog-screen" style="display:none; overflow-y:auto; max-height:90vh; padding:10px;">
+  <div style="text-align:center; margin-bottom:10px;">
+    <button class="btn" onclick="showTitleScreen()">← Back</button>
+    <h2 style="display:inline-block; margin:0 15px; vertical-align:middle;">📖 Dinosaur Catalog</h2>
+  </div>
+  <div id="catalog-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+</div>
+</div>
+
+<script>
+// ==================== FULL DATABASE ====================
+const makeDB = () => {
+    const list = [
+    // ===== PRIMARY (15) =====
+{n:"Chasmosaurus",r:"Tank",h:380,s:100,a:130,d:400,tier:"Primary",passive:"Payback: reflect 25% dmg taken, bypass DEF.",pType:"counter",pVal:0.25,img:"https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj8RZCzrjxL_-MJ0JUt9E9IhzYc-4wA2WaJFaiIz2ZejOuZdKAlPgVuaNRiIbhqbsio_Xq9luTpst1A4rwbwQFfBTpOwFE8gVTQ71K16d4yDOzwyMf-hmWGzs3Cs6Npv_nphmTqhVTjlmo/s1600/Chasmosaurus+%2528wm%2529.jpg",desc:"A ceratopsian with a large frill and small horns, Chasmosaurus used its shield‑like neck to intimidate rivals."},
+{n:"Psittacosaurus",r:"Resilient",h:360,s:250,a:160,d:250,tier:"Primary",passive:"",active:[{n:"Heal",cd:1,desc:"Heal 60 + 0.5x ATK",fx:[{t:"heal",v:60},{t:"strike",m:0.5}]}],img:"https://i.etsystatic.com/7367599/r/il/7c6837/6708257494/il_570xN.6708257494_alxf.jpg",desc:"A small, bipedal herbivore with a parrot‑like beak; it’s one of the most well‑known early ceratopsians."},
+{n:"Protoceratops",r:"Resilient",h:380,s:225,a:140,d:275,tier:"Primary",passive:"",active:[{n:"Confidence",cd:2,desc:"+10% SPD/ATK/DEF",fx:[{t:"buff",s:"spd",p:10},{t:"buff",s:"atk",p:10},{t:"buff",s:"def",p:10}]}],img:"https://i.redd.it/qm1aj5jvuj841.jpg",desc:"A sheep‑sized herbivore with a sturdy frill, Protoceratops is famous for being the prey of Velociraptor in fossil battles."},
+{n:"Nundasuchus",r:"Attacker",h:280,s:210,a:390,d:140,tier:"Primary",passive:"",active:[{n:"Ferocious Bite",cd:2,desc:"-25% DEF + 1x ATK",fx:[{t:"debuff",s:"def",p:-25,tg:"opp"},{t:"strike",m:1}]}],img:"https://static.wikia.nocookie.net/jurassicpark/images/5/59/JWA_PressKit_Nundasuchus.png/revision/latest/scale-to-width-down/1200?cb=20200920212043",desc:"An ancient archosaur that looked like a crocodile but walked on long legs—a fast, land‑based predator."},
+{n:"Velociraptor",r:"Ambush",h:120,s:360,a:360,d:110,tier:"Primary",passive:"Sneaky Strike: attacks ignore counters.",pType:"noCounter",img:"https://i.redd.it/vwk1tjn649d51.jpg",desc:"A small, feathered hunter armed with a deadly sickle claw; it was much smaller than its movie counterpart."},
+{n:"Pyroraptor",r:"Ambush",h:110,s:370,a:340,d:130,tier:"Primary",passive:"Dodge: if faster, 50% dodge 100%.",pType:"dodgeIfFaster",dCh:50,dDp:100,img:"https://static.wikia.nocookie.net/dinosaurs/images/a/a2/Pyroraptor_olympius_reconstruction.png/revision/latest?cb=20221028232012",desc:"A swift, agile predator from Europe’s late Cretaceous—its name means 'fire thief' after its presumed speed."},
+{n:"Compsognathus",r:"Attacker",h:200,s:260,a:320,d:110,tier:"Primary",passive:"",active:[{n:"Venomous Bite",cd:1,desc:"1.5x ATK, venom 5t",fx:[{t:"strike",m:1.5,by:25},{t:"venom",dur:5}]}],img:"https://as2.ftcdn.net/v2/jpg/04/71/96/55/1000_F_471965501_fdRI7OSHazfo45Hqs7SY9k8fSP4ci8X3.jpg",desc:"One of the tiniest dinosaurs, it was a quick hunter of small reptiles and insects."},
+{n:"Tenontosaurus",r:"Tank",h:400,s:110,a:130,d:380,tier:"Primary",passive:"",active:[{n:"Fortify",cd:1,desc:"Coin: +20% DEF or heal 40%",fx:[{t:"coin",out:[[{t:"buff",s:"def",p:20}],[{t:"healPct",p:40}]]}]}],img:"https://preview.redd.it/tenontosaurus-appreciation-post-cause-i-love-it-v0-rqa8r4dvlxhe1.png?auto=webp&s=dd0cc7d0f564026db40e21a48e08edae36fb2173",desc:"A heavy‑bodied ornithopod that travelled in herds; often preyed upon by packs of Deinonychus."},
+{n:"Hypsilophodon",r:"Brawler",h:260,s:220,a:200,d:240,tier:"Primary",passive:"",active:[{n:"Hide",cd:3,desc:"75% dodge 50% 2t",fx:[{t:"dodgeSelf",ch:75,dp:50,dur:2}]}],img:"https://preview.redd.it/im-curious-what-is-the-most-accurate-depiction-of-a-v0-26644nepu2ld1.jpg?width=640&crop=smart&auto=webp&s=482ba3368a19edfd93688350a23bbe311c656dac",desc:"A small, fast dinosaur that could likely hide in bushes; it was once thought to be able to climb trees."},
+{n:"Dryosaurus",r:"Resilient",h:340,s:275,a:120,d:225,tier:"Primary",passive:"Immune to DEF reduction.",pType:"immuneDefDown",img:"https://cdna.artstation.com/p/assets/images/images/023/282/618/large/balint-benke-dryosaurus-png.jpg?1578685803",desc:"A gentle plant‑eater with a light build, it relied on speed to escape larger predators."},
+{n:"Struthiomimus",r:"Pursuit",h:240,s:350,a:200,d:140,tier:"Primary",passive:"Opponent cannot swap.",pType:"preventSwap",img:"https://preview.redd.it/struthiomimus-altus-by-sean-closson-v0-slaskv62uav81.jpg?width=640&crop=smart&auto=webp&s=55c04d3e234e5eb96646dbd75bf1f9b04baa34ae",desc:"The 'ostrich mimic'—toothless and long‑legged, it could outrun most dangers in its Late Cretaceous home."},
+{n:"Archaeornithomimus",r:"Brawler",h:240,s:240,a:210,d:210,tier:"Primary",passive:"",active:[{n:"Runner",cd:2,desc:"Dmg→SPD/ATK + 1x",fx:[{t:"convert",max:400},{t:"strike",m:1}]}],img:"https://static.wikia.nocookie.net/godzilla-and-friends/images/3/38/Archthumb.png/revision/latest?cb=20200828202641",desc:"An early ornithomimid from Asia, it had a streamlined body perfect for sprinting across open plains."},
+{n:"Tapejara",r:"Pursuit",h:205,s:390,a:210,d:100,tier:"Primary",passive:"",active:[{n:"Hit&Run",cd:1,desc:"1x ATK then swap",fx:[{t:"strike",m:1},{t:"swapSelf"}]}],img:"https://cdn.paleo.gg/games/jwpo/images/dino/tapejara.png",desc:"A crested pterosaur that lived in huge flocks; it likely used its beak to snatch fruit and fish."},
+{n:"Dimorphodon",r:"Attacker",h:215,s:270,a:340,d:100,tier:"Primary",passive:"Swap in: 1x ATK bypass 50% DEF.",pType:"swapInAtk",swM:1,swB:50,img:"https://i.redd.it/5evr9zq6i7591.jpg",desc:"A small pterosaur with a large head and sharp teeth; it dove from cliffs to catch fish."},
+{n:"Tropeognathus",r:"Ambush",h:300,s:580,a:510,d:340,tier:"Primary",passive:"Revenge: +2x ATK if teammate died.",pType:"revenge",rMult:2,active:[{n:"Quick Attack",cd:1,desc:"1.5x ATK",fx:[{t:"strike",m:1.5}]}],img:"https://blenderartists.org/uploads/default/original/4X/b/c/b/bcb292ae967a4fed35075e124568ebbe8f0de4b6.jpeg",desc:"One of the largest pterosaurs, with a wingspan of up to 6 metres—it soared over ancient oceans."},
+
+// ===== SECONDARY (22) =====
+{n:"Dsungaripterus",r:"Pursuit",h:400,s:575,a:410,d:300,tier:"Secondary",passive:"Prevents swap unless faster.",pType:"preventSwapUnlessFaster",active:[{n:"Aerial Attack",cd:1,desc:"0.75x + dodge",fx:[{t:"strike",m:0.75},{t:"dodgeSelf",ch:75,dp:30,dur:1}]}],img:"https://preview.redd.it/what-if-dsungaripterus-was-added-to-the-game-would-you-play-v0-h8dlt6uy2wec1.jpeg?width=640&crop=smart&auto=webp&s=a40f17ff0ab58d4e8c8d8fe6a3af718dab5824f5",desc:"A strong‑jawed pterosaur that could crush shellfish with its curved beak—a true aerial powerhouse."},
+{n:"Nasutoceratops",r:"Resilient",h:570,s:440,a:380,d:450,tier:"Secondary",passive:"DEF cannot be lowered.",pType:"immuneDefDown",active:[{n:"Ram",cd:2,desc:"2x ATK -10% SPD",fx:[{t:"strike",m:2},{t:"debuff",s:"spd",p:-10,tg:"opp"}]}],img:"https://i.natgeofe.com/n/0417241a-41ad-47be-b656-10fc68fee578/Nasutoceratops-titusi-splash.jpg",desc:"A big‑nosed ceratopsian with long, sweeping horns like a bull’s; it used them for defence and display."},
+{n:"Styracosaurus",r:"Resilient",h:540,s:460,a:390,d:430,tier:"Secondary",passive:"Sharp Frill: counter 0.3x-0.6x.",pType:"counterCond",active:[{n:"Piercer",cd:3,desc:"1.5x + bleed 10%x3",fx:[{t:"strike",m:1.5},{t:"bleed",pct:10,dur:3}]}],img:"https://preview.redd.it/styracosaurus-albertensis-v0-lbeladn6p9ig1.jpeg?auto=webp&s=d4a09b0ff259dca34163bb93e8971437be9dc481",desc:"Famous for its large nasal horn and a frill edged with long spikes, it looked like a prehistoric demon."},
+{n:"Alanqa",r:"Pursuit",h:430,s:560,a:430,d:310,tier:"Secondary",passive:"Prevents swap unless faster.",pType:"preventSwapUnlessFaster",active:[{n:"Dive",cd:2,desc:"2x ATK, 25% vuln",fx:[{t:"strike",m:2},{t:"vulnSelf",ch:25,pct:50}]}],img:"https://pteros-img.imgix.net/alanqa_joschua-knueppe.png?ixlib=js-2.3.2&w=1200&s=9dae1567ad9cc45457b98021962aaa78",desc:"A gigantic pterosaur from Africa’s Cretaceous; it had a long, spear‑like beak to catch fish."},
+{n:"Ceratosaurus",r:"Pursuit",h:480,s:535,a:475,d:320,tier:"Secondary",passive:"",active:[{n:"Bone Breaker",cd:2,desc:"-20% SPD + 1.5x",fx:[{t:"debuff",s:"spd",p:-20,tg:"opp"},{t:"strike",m:1.5}]},{n:"Nullifier",cd:3,desc:"Remove all effects",fx:[{t:"nullify"}]}],img:"https://i.redd.it/bakzqm98x1za1.jpg",desc:"A medium‑sized theropod with a large horn on its nose; it hunted in Jurassic floodplains."},
+{n:"Concavenator",r:"Pursuit",h:460,s:540,a:460,d:330,tier:"Secondary",passive:"Brace: +10% DEF on survival.",pType:"brace",active:[{n:"Intimidate",cd:2,desc:"+10% ATK + 1.3x",fx:[{t:"buff",s:"atk",p:10},{t:"strike",m:1.3}]}],img:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTECs0CYKP4AHFGmHmGcYF_gj75apzsdGPm0w&s",desc:"A Spanish theropod with two small humps on its back; possibly an ancestor of larger carcharodontosaurs."},
+{n:"Corythosaurus",r:"Tank",h:570,s:360,a:370,d:575,tier:"Secondary",passive:"Green Support: heal ally on swap.",pType:"greenSupport",pType2:"healerCounter",img:"https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj6azDFL7miGlP3JMk4Xebpwa4kMSZP9Eu3A0-TvElDqALpOjbdveRqhUkIsD0eccZchCmR6ztazWkXisji1UAPKyEYqd6ZC-b6NUrq3YkaU-rAx9tbkGx5uyJt_muZYsHQts1UCCytP3_NcG2rXvUjLnWwyNfB1GckLup3zrG0-RunGiwAtRjlH4PIFlo/w400-h246/Corythosurus%20(wm).jpg",desc:"A duck‑billed hadrosaur with a large, hollow crest on its head, used to produce loud, resonant calls."},
+{n:"Cryolophosaurus",r:"Attacker",h:420,s:470,a:510,d:320,tier:"Secondary",passive:"Payback Strike: 0.5x counter bypass.",pType:"counter",pVal:0.5,active:[{n:"Deep Slash",cd:3,desc:"1.5x + wound",fx:[{t:"strike",m:1.5},{t:"wound",same:true}]}],img:"https://images.imagerenderer.com/images-medium-large-5/cryolophosaurus-a-large-theropod-that-h-kyoht-luterman.jpg",desc:"The 'frozen‑crested lizard' from Antarctica; it sported a unique, wavy crest atop its skull."},
+{n:"Deinonychus",r:"Ambush",h:350,s:560,a:550,d:310,tier:"Secondary",passive:"",active:[{n:"Lacerate",cd:3,desc:"0.5x + bleed 100x2",fx:[{t:"strike",m:0.5},{t:"bleedFlat",dmg:100,dur:2}]},{n:"Sneaky Strike",cd:2,desc:"2.5x + dodge",fx:[{t:"strike",m:2.5},{t:"dodgeSelf",ch:75,dp:50,dur:1}]}],img:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTo9sR2y1No4OoZpx3KkplzEAkXyLQjiaIoCQ&s",desc:"A fast, pack‑hunting dromaeosaur; its lethal toe claw inspired the idea of pack‑hunting raptors."},
+{n:"Dimetrodon",r:"Resilient",h:510,s:420,a:360,d:410,tier:"Secondary",passive:"DEF cannot be lowered.",pType:"immuneDefDown",active:[{n:"Bite",cd:1,desc:"0.75x bypass DEF",fx:[{t:"strike",m:0.75,by:100}]}],img:"https://i.redd.it/im-doing-research-to-make-a-paleo-accurate-dimetrodon-3d-v0-9x73ovygrkzf1.png?width=891&format=png&auto=webp&s=11d4185c0766c96806fcfce1ac3d0fbacd0cce33",desc:"Often mistaken for a dinosaur, Dimetrodon was actually a synapsid—more closely related to mammals—with a huge sail on its back."},
+{n:"Dracorex",r:"Brawler",h:450,s:430,a:460,d:470,tier:"Secondary",passive:"",active:[{n:"Headbutt",cd:2,desc:"1.5x 30% stun",fx:[{t:"strike",m:1.5},{t:"stun",ch:30}]},{n:"Charge",cd:3,desc:"2x ATK",fx:[{t:"strike",m:2}]}],img:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSP8uczvKvBcDH1a0499RQinEY9XAkZV_qrtg&s",desc:"A dome‑headed dinosaur with a skull covered in spikes and bumps—its name means 'dragon king'."},
+{n:"Huayangosaurus",r:"Tank",h:550,s:320,a:375,d:525,tier:"Secondary",passive:"",active:[{n:"Thagomizer",cd:1,desc:"1.3x -20% SPD",fx:[{t:"strike",m:1.3},{t:"debuff",s:"spd",p:-20,tg:"opp"}]},{n:"Tackle",cd:2,desc:"0.5x bypass + -15% ATK",fx:[{t:"strike",m:0.5,by:100},{t:"debuff",s:"atk",p:-15,tg:"opp"}]}],img:"https://images.dinosaurpictures.org/huayangosaurus_by_cheungchungtat-d31r2uj_0163.jpg",desc:"An early stegosaur with small plates and shoulder spikes; it lived in the Middle Jurassic of China."},
+{n:"Irritator",r:"Attacker",h:430,s:440,a:530,d:310,tier:"Secondary",passive:"",active:[{n:"Swifting Strike",cd:1,desc:"+10% SPD + 1x",fx:[{t:"buff",s:"spd",p:10},{t:"strike",m:1}]},{n:"Critical Bite",cd:2,desc:"1x 30% crit 1.5x",fx:[{t:"strike",m:1},{t:"critRoll",ch:30,mult:1.5}]}],img:"https://static.wikia.nocookie.net/prehistoric-wiki/images/3/35/Irritator_challengeri_by_PaleoGeek.png/revision/latest/scale-to-width-down/1280?cb=20220220224404",desc:"A Brazilian spinosaur known for its crocodile‑like skull; its fossil was tampered with, hence the 'irritating' name."},
+{n:"Kaprosuchus",r:"Attacker",h:410,s:470,a:540,d:370,tier:"Secondary",passive:"",active:[{n:"Armor Piercer",cd:2,desc:"-150 DEF + 1x",fx:[{t:"flatDefDown",v:150},{t:"strike",m:1}]},{n:"Intimidator",cd:2,desc:"-10% ATK + 1x",fx:[{t:"debuff",s:"atk",p:-10,tg:"opp"},{t:"strike",m:1}]}],img:"https://preview.redd.it/weekly-crocodilomorph-1-kaprosuchus-v0-r3klenp07f4c1.jpg?width=640&crop=smart&auto=webp&s=95fbb5af7e7e5abf6f1c4aff0651556d9b86bed2",desc:"The 'boar croc' – a land‑running crocodilian with tusk‑like teeth that chased down prey on long legs."},
+{n:"Kentrosaurus",r:"Attacker",h:470,s:400,a:550,d:360,tier:"Secondary",passive:"Spiky Plates: reflect 0.5x bypass.",pType:"reflect",pVal:0.5,active:[{n:"Thagomizer",cd:2,desc:"1.5x -20% SPD",fx:[{t:"strike",m:1.5},{t:"debuff",s:"spd",p:-20,tg:"opp"}]}],img:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSZBuYJGQH7H1l_N1j4qFf_KG_4W--ZYfkOYg&s",desc:"A stegosaur from Africa, covered in plates and long shoulder spikes that pointed sideways like a medieval knight."},
+{n:"Lambeosaurus",r:"Tank",h:600,s:330,a:360,d:550,tier:"Secondary",passive:"Immune to bleed.",pType:"immuneBleed",active:[{n:"Tackle",cd:3,desc:"2x ATK",fx:[{t:"strike",m:2}]}],img:"https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgOmpdhhmydGbwRRMEqK6SGZFtJRZIlI3m5PurjF2Oc3duVLHIvKUQD56K-LvKbdqXbIEZpcmIZhm5s6x0h1aXE2aHOOLFwFVKLhfLzcn5seIBSFPPxfPUIrHMAy6ESpmY5WMgyllX6y3E/s2048/Lambeosaurus%2528wm%2529.jpg",desc:"A large hadrosaur with a tall, hatchet‑shaped crest; it could likely walk on two or four legs."},
+{n:"Majungasaurus",r:"Attacker",h:450,s:460,a:530,d:350,tier:"Secondary",passive:"Swap-In: +20% ATK. Payback: +10-30% ATK.",pType:"swapInBuff",pType2:"paybackAnger",active:[],img:"https://i.redd.it/vjncy1ei75wa1.jpg",desc:"A bizarre Madagascar predator with a short snout and thick skull; some fossils show evidence of cannibalism."},
+{n:"Ornithomimus",r:"Brawler",h:400,s:475,a:425,d:425,tier:"Secondary",passive:"",active:[{n:"Speed-Up",cd:2,desc:"+20% SPD + dodge",fx:[{t:"buff",s:"spd",p:20},{t:"dodgeSelf",ch:50,dp:50,dur:1}]},{n:"Bite",cd:1,desc:"-10% DEF + 1x",fx:[{t:"debuff",s:"def",p:-10,tg:"opp"},{t:"strike",m:1}]}],img:"https://nixillustration.com/wp-content/uploads/2022/10/17-ornithomimus.png",desc:"A toothless, ostrich‑like dinosaur that could run at incredible speeds across the Cretaceous plains."},
+{n:"Proceratosaurus",r:"Ambush",h:375,s:570,a:570,d:320,tier:"Secondary",passive:"",active:[{n:"Deep Wound",cd:2,desc:"1.5x + wound",fx:[{t:"strike",m:1.5},{t:"wound",same:true}]},{n:"Flurry",cd:2,desc:"2x ATK",fx:[{t:"strike",m:2}]}],img:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTn84Q2ERLlYbHnovKZh4azmEJqUVofnBlAGw&s",desc:"A small Jurassic theropod with a small horn on its snout – an early relative of the mighty Tyrannosaurus."},
+{n:"Pteranodon",r:"Ambush",h:325,s:570,a:530,d:350,tier:"Secondary",passive:"Swap in: 1x ATK.",pType:"swapInAtk",swM:1,swB:0,active:[{n:"Aerial Strike",cd:2,desc:"0.5x + dodge",fx:[{t:"strike",m:0.5},{t:"dodgeSelf",ch:50,dp:50,dur:1}]}],img:"https://i.etsystatic.com/7367599/r/il/374e3f/1281439708/il_570xN.1281439708_f5v9.jpg",desc:"A large, toothless pterosaur with a distinctive backward‑pointing crest; it skimmed the ocean for fish."},
+{n:"Rugops",r:"Brawler",h:480,s:430,a:460,d:410,tier:"Secondary",passive:"",active:[{n:"Knockback",cd:1,desc:"1.2x or 1x -10% DEF",fx:[{t:"knockback"}]},{n:"Roar",cd:2,desc:"+10% ATK/DEF",fx:[{t:"buff",s:"atk",p:10},{t:"buff",s:"def",p:10}]}],img:"https://pbs.twimg.com/media/CzSoyRqUoAAGoKL.jpg",desc:"A short‑snouted abelisaur from Africa; its name means 'wrinkle face' thanks to the grooves on its skull."},
+    
+    // ===== TERTIARY (28) =====
+    {n:"Polacanthus",r:"Resilient",h:750,s:630,a:520,d:660,tier:"Tertiary",passive:"Osteoderms: 50% resist DEF down.",pType:"resistDefDown",pVal:50,active:[{n:"Emergency Heal",cd:3,prio:true,desc:"+20% DEF, heal 200",fx:[{t:"buff",s:"def",p:20},{t:"heal",v:200}]},{n:"Slugger",cd:2,desc:"-30% SPD + 1.5x",fx:[{t:"debuff",s:"spd",p:-30,tg:"opp"},{t:"strike",m:1.5}]}],img:"https://render.fineartamerica.com/images/images-profile-flow/400/images-medium-large-5/dinosaur-eating-leaves-deagostiniuigscience-photo-library.jpg",desc:"A heavily armoured nodosaur with a sacral shield—a solid plate of bone and spikes protecting its hips."},
+    {n:"Nodosaurus",r:"Brawler",h:670,s:620,a:630,d:675,tier:"Tertiary",passive:"Counter: 0.5x after hit. Defensive/Offensive Stance.",pType:"counter",pVal:0.5,active:[{n:"Defensive Stance",cd:3,prio:true,desc:"+20% DEF",fx:[{t:"buff",s:"def",p:20}]},{n:"Offensive Stance",cd:2,desc:"+10% ATK",fx:[{t:"buff",s:"atk",p:10}]}],img:"https://images.dinosaurpictures.org/Nodosaurus/Nodosaurus_9a1a47cf.jpg",desc:"A walking tank covered in bony plates, Nodosaurus had no tail club but was nearly impervious to predators."},
+    {n:"Sinoceratops",r:"Resilient",h:740,s:640,a:540,d:630,tier:"Tertiary",passive:"",active:[{n:"Charge",cd:3,desc:"1.5x 60% stun",fx:[{t:"strike",m:1.5},{t:"stun",ch:60}]},{n:"Heal&Escape",cd:3,prio:true,desc:"Heal 200 + swap",fx:[{t:"heal",v:200},{t:"swapSelf"}]},{n:"Precise Strike",cd:1,desc:"1x bypass dodge",fx:[{t:"strike",m:1,byDodge:true}]}],img:"https://preview.redd.it/sinoceratops-sexual-dimorphism-v0-u64ray4zkbsf1.jpg?width=640&crop=smart&auto=webp&s=bc1e55f736e8c4d384a235d662e813eb25c1dc84",desc:"A large ceratopsian from Asia with a single horn on its nose and a frill adorned with short, forward‑curving spikes."},
+    {n:"Pachyrhinosaurus",r:"Tank",h:760,s:530,a:570,d:750,tier:"Tertiary",passive:"Frill: reflect % max HP if DEF reduced.",pType:"frillReflect",active:[{n:"Brace",cd:2,prio:true,desc:"+20% DEF if opp fast",fx:[{t:"condBuff",s:"def",p:20,cond:"spdHigh",th:700,else:10}]},{n:"Angry Strike",cd:2,desc:"+20% ATK + 1.5x",fx:[{t:"buff",s:"atk",p:20},{t:"strike",m:1.5}]}],img:"https://creative-beast.com/wp-content/uploads/2022/08/pachy1.jpg",desc:"Instead of horns, this tank had a thick, bumpy boss of bone on its nose—perfect for shoving contests."},
+    {n:"Purrusaurus",r:"Ambush",h:570,s:740,a:790,d:580,tier:"Tertiary",passive:"Immobile: opponent can't swap.",pType:"preventSwap",active:[{n:"Water Strike",cd:2,desc:"1x + 75% dodge 50% 2t",fx:[{t:"strike",m:1},{t:"dodgeSelf",ch:75,dp:50,dur:2}]},{n:"Snap Jaw",cd:1,desc:"1.5x ATK",fx:[{t:"strike",m:1.5}]}],img:"https://preview.redd.it/purussaurus-mod-would-be-great-cuz-some-people-likes-it-idk-v0-09siv7pj6q9d1.png?auto=webp&s=d95b5a1c304e4be53ed2b0e6f995eefb4a2a8428",desc:"A colossal caiman that could grow larger than a bus; it ambushed prey in Miocene swamps."},
+    {n:"Gryposuchus",r:"Attacker",h:660,s:620,a:740,d:570,tier:"Tertiary",passive:"Immobile: opponent can't swap.",pType:"preventSwap",active:[{n:"Defense Breaker",cd:2,desc:"-30% DEF + 1.5x",fx:[{t:"debuff",s:"def",p:-30,tg:"opp"},{t:"strike",m:1.5}]},{n:"Ferocious Bite",cd:2,desc:"+20% ATK + 1.2x",fx:[{t:"buff",s:"atk",p:20},{t:"strike",m:1.2}]}],img:"https://64.media.tumblr.com/8799f728e1052d46f6a592f0170e84d1/tumblr_inline_o67mw1vfkH1qdikaa_540.jpg",desc:"A giant gharial that dominated South American rivers; its long snout was perfect for snatching fish."},
+    {n:"Postosuchus",r:"Pursuit",h:640,s:760,a:630,d:560,tier:"Tertiary",passive:"Counter: 0.5x bypass. Immune SPD down.",pType:"counterBypass",pVal:0.5,pType2:"immuneSpdDown",active:[{n:"Hemorrhage",cd:2,desc:"1x + bleed 20% 2t",fx:[{t:"strike",m:1},{t:"bleed",pct:20,dur:2}]}],img:"https://64.media.tumblr.com/0f9d789cfc8295ab16132562f80454cc/f20047cc3344995f-49/s2048x3072/beac76921ae18ebd41b77dfdd82a8851dd9d3d3d.pnj",desc:"A top predator of the Triassic, this archosaur had a massive skull and walked on four powerful legs."},
+    {n:"Achillobator",r:"Pursuit",h:650,s:780,a:640,d:520,tier:"Tertiary",passive:"Pin: 75% prevent swap + 1x. Ambush-In: 75% dodge 60%.",pType:"pinSwap",pType2:"ambushInDodge",active:[{n:"Pounce",cd:2,desc:"1.5x + bleed 20% 2t",fx:[{t:"strike",m:1.5},{t:"bleed",pct:20,dur:2}]}],img:"https://upload.wikimedia.org/wikipedia/commons/7/78/Achillobator_reconstruction.png",desc:"A gigantic dromaeosaur from Mongolia—much larger than Velociraptor—with a powerful sickle claw on each foot."},
+    {n:"Monolophosaurus",r:"Brawler",h:620,s:680,a:675,d:610,tier:"Tertiary",passive:"Critical Counter: 0.5x 20% bypass.",pType:"critCounter",pVal:0.5,active:[{n:"Hunt Down",cd:2,desc:"+15% SPD + dodge + 1x",fx:[{t:"buff",s:"spd",p:15},{t:"dodgeSelf",ch:50,dp:50,dur:1},{t:"strike",m:1}]},{n:"Heal",cd:3,desc:"Heal 300",fx:[{t:"heal",v:300}]}],img:"https://external-preview.redd.it/monolophosaurus-jiangi-v0-Spjh1Znc1O3TUBYuv_IFb5cvWZ8hugv6fMTYWQie4UU.jpg?width=640&crop=smart&auto=webp&s=f805498e613cd83592177c37f889e4d71c42a26e",desc:"Named for the single crest on its head, this medium‑sized theropod hunted across Middle Jurassic China."},
+    {n:"Iguanodon",r:"Tank",h:780,s:560,a:575,d:700,tier:"Tertiary",passive:"Slowing Strike: -15% SPD on hit.",pType:"slowOnHit",active:[{n:"Tackle",cd:2,desc:"2x -50 DEF self",fx:[{t:"strike",m:2},{t:"selfDefDown",v:50}]},{n:"Precise Impaler",cd:2,desc:"1.5x bypass dodge",fx:[{t:"strike",m:1.5,byDodge:true}]}],img:"https://preview.redd.it/finally-got-around-to-finishing-this-iguanodon-piece-using-v0-zi4k5o7dazra1.jpg?width=640&crop=smart&auto=webp&s=1f64415e7b56cf474fa817d241013bdf80ac309d",desc:"One of the first dinosaurs ever discovered; it had a thumb spike it could use like a dagger against predators."},
+    {n:"Maiasaura",r:"Resilient",h:730,s:660,a:520,d:620,tier:"Tertiary",passive:"DEF cannot be lowered.",pType:"immuneDefDown",active:[{n:"Precise Strike",cd:2,desc:"1.25x bypass dodge",fx:[{t:"strike",m:1.25,byDodge:true}]},{n:"Heal",cd:3,desc:"Heal 20% max HP",fx:[{t:"healPct",p:20}]}],img:"https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgmLJogm9P6CQKqoum6ESfVQuiESZWlYMYN_DyiiSKhVzhw74XSzR6GRAvXtEVDELpObni4YQDvDG4XaxMfKfubm_0iAJ3dJBsEDDTVlVQZrZinvbPO0LC-04ooMhddwGLqei2ri9Vwoy4c/w1200-h630-p-k-no-nu/Maiasaura+(wm).jpg",desc:"Known for its parenting behaviour, this duck‑bill nested in huge colonies and cared for its young."},
+    {n:"Gallimimus",r:"Ambush",h:530,s:785,a:710,d:500,tier:"Tertiary",passive:"Swiftness: always 25% dodge 50%.",pType:"permDodge",dCh:25,dDp:50,active:[{n:"Dodge",cd:3,desc:"50% dodge 75% 2t",fx:[{t:"dodgeSelf",ch:50,dp:75,dur:2}]},{n:"Tackle",cd:1,desc:"2x ATK",fx:[{t:"strike",m:2}]}],img:"https://i.redd.it/kp27iiulv8h71.png",desc:"The fastest dinosaur known, Gallimimus could sprint at over 60 km/h across the ancient desert plains."},
+    {n:"Pachycephalosaurus",r:"Resilient",h:720,s:690,a:575,d:630,tier:"Tertiary",passive:"Hard Headed: immune stun. Stunner: strike stun 25-50%.",pType:"immuneStun",pType2:"stunStrike",active:[{n:"Headbutt",cd:2,desc:"1.5x 75% stun",fx:[{t:"strike",m:1.5},{t:"stun",ch:75}]}],img:"https://i.ytimg.com/vi/Dp7SLEromCI/hqdefault.jpg",desc:"With a skull up to 25 cm thick, it likely used its bony dome for head‑butting contests with rivals."},
+    {n:"Stygimoloch",r:"Brawler",h:630,s:675,a:670,d:625,tier:"Tertiary",passive:"Hard Headed: immune stun.",pType:"immuneStun",active:[{n:"Headbutt",cd:2,desc:"1.5x 75% stun",fx:[{t:"strike",m:1.5},{t:"stun",ch:75}]},{n:"Healer",cd:2,prio:true,desc:"Heal 300",fx:[{t:"heal",v:300}]}],img:"https://images.dinosaurpictures.org/Stygimoloch_0d15.jpg",desc:"A spiky‑headed pachycephalosaur with knobs and horns on its skull, possibly used for display rather than fighting."},
+    {n:"Amargasaurus",r:"Tank",h:800,s:500,a:540,d:720,tier:"Tertiary",passive:"Spiky Sail: 100 dmg reflect bypass. Resilient: resist stun/def down.",pType:"flatReflect",pVal:100,active:[{n:"Slowing Impact",cd:1,desc:"1x -20% SPD",fx:[{t:"strike",m:1},{t:"debuff",s:"spd",p:-20,tg:"opp"}]}],img:"https://cdnb.artstation.com/p/assets/images/images/001/073/485/large/karel-cettl-amargasaurus2.jpg?1439454885",desc:"A small sauropod with two rows of tall spines along its neck—perhaps supporting a pair of colourful sails."},
+    {n:"Baryonyx",r:"Ambush",h:560,s:750,a:760,d:550,tier:"Tertiary",passive:"Heavy Claw: 25% bypass 50% DEF.",pType:"bypassChance",pCh:25,pBp:50,active:[{n:"Sudden Strike",cd:1,desc:"2x ATK",fx:[{t:"strike",m:2}]},{n:"Lie in Wait",cd:3,desc:"50% dodge 50% + 2x next",fx:[{t:"dodgeSelf",ch:50,dp:50,dur:1},{t:"buffNextAtk",mult:2}]}],img:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRBAhB-Kcs5BHiGljs_DiGsLvXZTp_d4wyV6w&s",desc:"A fish‑eating spinosaur with a huge hooked claw on its thumb; it lived along ancient rivers in England."},
+    {n:"Chungkingosaurus",r:"Resilient",h:730,s:630,a:530,d:640,tier:"Tertiary",passive:"Spines: reflect 50% dmg.",pType:"reflect",pVal:0.50,active:[{n:"Precise Slice",cd:1,desc:"1.5x bypass dodge",fx:[{t:"strike",m:1.5,byDodge:true}]},{n:"Slowing Slice",cd:2,desc:"1x -25% SPD",fx:[{t:"strike",m:1},{t:"debuff",s:"spd",p:-25,tg:"opp"}]}],img:"https://static.wikia.nocookie.net/dinosaurs/images/9/9a/Chungkingosaurus-Anness-Publishing-NHMPL.jpg/revision/latest?cb=20130610222454",desc:"A small stegosaur from China with spiky plates and a thagomizer that made predators think twice."},
+    {n:"Miragaia",r:"Resilient",h:740,s:600,a:540,d:650,tier:"Tertiary",passive:"",active:[{n:"Fatal Strike",cd:2,desc:"1x + wound",fx:[{t:"strike",m:1},{t:"wound",same:true}]},{n:"Precise Slice",cd:1,desc:"1.5x bypass dodge",fx:[{t:"strike",m:1.5,byDodge:true}]},{n:"Critical Chop",cd:2,desc:"1.25x 40% crit 1.6x",fx:[{t:"critCombined",baseM:1.25,critCh:40,critM:1.6}]}],img:"https://everydayoriginal.com/wp-content/uploads/2019/09/miragaia.jpg",desc:"A long‑necked stegosaur from Portugal with rows of sharp plates and a tail armed with deadly spikes."},
+    {n:"Gorgosaurus",r:"Attacker",h:680,s:630,a:760,d:550,tier:"Tertiary",passive:"",active:[{n:"Defense Destroyer",cd:3,desc:"2x bypass 50% DEF",fx:[{t:"strike",m:2,by:50}]},{n:"Offensive Roar",cd:2,desc:"+10% ATK",fx:[{t:"buff",s:"atk",p:10}]},{n:"Critical Chomp",cd:1,desc:"1.5x 50% bypass DEF",fx:[{t:"critCombined",baseM:1.5,critCh:50,critBypass:100}]}],img:"https://cdna.artstation.com/p/assets/images/images/005/968/764/large/fred-wierum-gorgosaurus-tom2.jpg?1495063517",desc:"A sleek tyrannosaur from Western Canada; slightly smaller than its cousin T‑rex but just as ferocious."},
+    {n:"Lythronax",r:"Attacker",h:640,s:650,a:720,d:520,tier:"Tertiary",passive:"Immune ATK/SPD down. Counter: 0.25x bypass.",pType:"immuneAtkSpdDown",pType2:"counterBypass",pVal:0.25,active:[{n:"Critical Chomp",cd:1,desc:"1.5x 50% bypass DEF",fx:[{t:"critCombined",baseM:1.5,critCh:50,critBypass:100}]}],img:"https://images.dinosaurpictures.org/lythronax_argestes_by_viergacht-d6tdx7u_b798.jpg",desc:"The 'king of gore'—an early tyrannosaur from Utah with a skull built for maximum bite force."},
+    {n:"Carnotaurus",r:"Pursuit",h:690,s:800,a:650,d:565,tier:"Tertiary",passive:"Juggernaut: SPD mod→ATK. Runner: immune SPD down, +5% SPD/turn.",pType:"juggernaut",active:[{n:"Charge",cd:2,desc:"1.5x 75% stun",fx:[{t:"strike",m:1.5},{t:"stun",ch:75}]}],img:"https://i.etsystatic.com/7367599/r/il/5f4adb/3991209837/il_fullxfull.3991209837_k1m7.jpg",desc:"A South American predator with two large horns and a deep, bulldog‑like skull—a true reptilian bull."},
+    {n:"Megalosaurus",r:"Attacker",h:620,s:670,a:740,d:560,tier:"Tertiary",passive:"Bloodthirsty: +20% ATK if opp bleed.",pType:"bloodthirsty",active:[{n:"Hemorrhage Bite",cd:3,desc:"1.5x + bleed 25% 2t",fx:[{t:"strike",m:1.5},{t:"bleed",pct:25,dur:2}]},{n:"Deep Wound",cd:3,desc:"1.25x + wound",fx:[{t:"strike",m:1.25},{t:"wound",same:true}]}],img:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT9RqkVK_FKA4zTLTb-Zj7fcRfdjJUmvR3SNw&s",desc:"The first dinosaur ever named, Megalosaurus was a Middle Jurassic meat‑eater the size of a small bus."},
+    {n:"Allosaurus",r:"Attacker",h:680,s:630,a:780,d:580,tier:"Tertiary",passive:"ATK cannot be reduced.",pType:"immuneAtkDown",active:[{n:"Hatchet Bite",cd:2,desc:"2x bypass 35% DEF",fx:[{t:"strike",m:2,by:35}]},{n:"Critical Chomp",cd:1,desc:"1.25x 40% crit 1.5x",fx:[{t:"critCombined",baseM:1.25,critCh:40,critM:1.5}]}],img:"https://th-thumbnailer.cdn-si-edu.com/MV7hUyWR8SqdwY4Hrk0KD06-eiA=/fit-in/1200x0/https://tf-cmsv2-smithsonianmag-media.s3.amazonaws.com/filer/fd/17/fd17197a-78c2-4f27-9040-c0b5d48b6108/1200px-allosaurus_revised.jpg",desc:"The lion of the Jurassic—a large, strong‑jawed hunter that could open its mouth wide to slash at prey."},
+
+    // ===== QUATERNARY (27) =====
+    {n:"Sauropelta",r:"Resilient",h:950,s:810,a:760,d:875,tier:"Quaternary",passive:"Osteoderms: immune bleed. Spikes: reflect 0.75x opponent SPD as dmg bypass.",pType:"immuneBleed",pType2:"spdReflect",active:[{n:"Precise Slowing Slash",cd:2,desc:"1.5x bypass dodge, -20% SPD",fx:[{t:"strike",m:1.5,byDodge:true},{t:"debuff",s:"spd",p:-20,tg:"opp"}]},{n:"Regenerate",cd:4,prio:true,desc:"+10% DEF, heal 10% HP each turn 3t",fx:[{t:"buff",s:"def",p:10},{t:"regen",pct:10,dur:3}]}],img:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSsgVBCD-CxpaPS502_oBNa3tB0yrTZ_ZGYdw&s",desc:"A large nodosaur with a covering of bony armour and sharp shoulder spikes—like a living fortress."},
+    {n:"Euoplocephalus",r:"Tank",h:925,s:775,a:790,d:1000,tier:"Quaternary",passive:"Immune bleed. Regenerate 5% HP each turn.",pType:"immuneBleed",pType2:"regenPassive",regenPct:5,active:[{n:"Cleanser",cd:2,desc:"1.25x, clear negative effects",fx:[{t:"strike",m:1.25},{t:"cleanse"}]},{n:"Bone Breaker",cd:2,desc:"1.5x, -20% SPD/DEF",fx:[{t:"strike",m:1.5},{t:"debuff",s:"spd",p:-20,tg:"opp"},{t:"debuff",s:"def",p:-20,tg:"opp"}]}],img:"https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi67sHFx0hU_uhZy06mFJuH1NU8iHUIKwFhP__r9PLu393npZAqC7iW9iUOBz5ydKjqLyI7Hefz-jOXa4kZQ3nzd087YDRrMw0sO4mfAftkCY1jTz5Ks1g5BtOqH08G_OV1UICcR6GW2EE/w1200-h630-p-k-no-nu/Euoplocephalus+%2528wm%2529.jpg",desc:"A tank‑sized ankylosaur with a massive tail club and armour so thick it could stop a tyrannosaur’s bite."},
+    {n:"Pentaceratops",r:"Attacker",h:860,s:810,a:950,d:790,tier:"Quaternary",passive:"Ceratopsian: +5% dmg per ceratopsian in backup. Aggressiveness: +10% ATK after hit.",pType:"ceratopsian",pType2:"aggressiveness",active:[{n:"Impaling Strike",cd:2,desc:"1.5x + bleed 20% 2t",fx:[{t:"strike",m:1.5},{t:"bleed",pct:20,dur:2}]},{n:"Back Kick",cd:2,desc:"1.25x -10% SPD, swap if prevented",fx:[{t:"strike",m:1.25},{t:"debuff",s:"spd",p:-10,tg:"opp"}]}],img:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ1n9x6RlZFOUWXgnKmtEF4MjOMn_2luxr8MQ&s",desc:"A ceratopsian with a massive frill and long brow horns—its name means 'five‑horned‑face', though only three are true horns."},
+    {n:"Sarcosuchus",r:"Pursuit",h:860,s:930,a:875,d:790,tier:"Quaternary",passive:"Lockjaw: prevent swap + 1x. Growl: +20% ATK/SPD.",pType:"lockjaw",active:[{n:"Death Roll",cd:3,desc:"2x -20% SPD",fx:[{t:"strike",m:2},{t:"debuff",s:"spd",p:-20,tg:"opp"}]},{n:"Lunge",cd:1,desc:"1.5x -20% DEF",fx:[{t:"strike",m:1.5},{t:"debuff",s:"def",p:-20,tg:"opp"}]},{n:"Growl",cd:2,desc:"+20% ATK/SPD",fx:[{t:"buff",s:"atk",p:20},{t:"buff",s:"spd",p:20}]}],img:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR5rHnjMRl3_9vhWuHUSD0xwXIGlER39k-pQA&s",desc:"One of the largest crocodilians ever, it had a broad snout and could likely prey on dinosaurs."},
+    {n:"Utahraptor",r:"Ambush",h:740,s:960,a:960,d:740,tier:"Quaternary",passive:"Evader: 50% dodge 40%.",pType:"permDodge",dCh:50,dDp:40,active:[{n:"Grapple",cd:2,desc:"2x, prevent opponent swap while active",fx:[{t:"strike",m:2},{t:"preventSwapSelf"}]},{n:"Hemorrhage",cd:2,desc:"0.75x + bleed 10% 3t",fx:[{t:"strike",m:0.75},{t:"bleed",pct:10,dur:3}]},{n:"Sneaky Strike",cd:1,desc:"1.25x, no counter",fx:[{t:"strike",m:1.25,noCounter:true}]}],img:"https://i.etsystatic.com/31368146/r/il/298219/3337436792/il_fullxfull.3337436792_kgxo.jpg",desc:"The largest raptor ever discovered, Utahraptor was a feathered giant with a 23‑cm sickle claw."},
+    {n:"Dilophosaurus",r:"Ambush",h:760,s:940,a:920,d:720,tier:"Quaternary",passive:"Sneaky: 60% dodge 40%.",pType:"permDodge",dCh:60,dDp:40,active:[{n:"Weakening Strike",cd:1,desc:"1x -20% ATK",fx:[{t:"strike",m:1},{t:"debuff",s:"atk",p:-20,tg:"opp"}]},{n:"Ambush",cd:3,desc:"2x ATK",fx:[{t:"strike",m:2}]},{n:"Venomous Bite",cd:2,desc:"1.5x, venom",fx:[{t:"strike",m:1.5},{t:"venom",dur:5}]}],img:"https://creative-beast.com/wp-content/uploads/2024/05/Dilophosaurus_art-846x1090.jpg",desc:"A double‑crested Jurassic predator that was much larger than its movie portrayal—and it didn’t spit venom!"},
+    {n:"Parasaurolophus",r:"Resilient",h:975,s:850,a:775,d:850,tier:"Quaternary",passive:"Regenerate 10% HP/turn. Back Kick: 1x bypass 25% if swap prevented.",pType:"regenPassive",regenPct:10,active:[{n:"Precise Tackle",cd:1,desc:"1.5x bypass dodge",fx:[{t:"strike",m:1.5,byDodge:true}]},{n:"Slowing Strike",cd:1,desc:"1.25x -20% SPD",fx:[{t:"strike",m:1.25},{t:"debuff",s:"spd",p:-20,tg:"opp"}]}],img:"https://images.dinosaurpictures.org/Parasaurolophus/Parasaurolophus_04bd3aa6.jpg",desc:"A hadrosaur with an iconic curved crest, likely used to produce deep, booming calls across its forest home."},
+    {n:"Tsintaosaurus",r:"Resilient",h:950,s:875,a:750,d:875,tier:"Quaternary",passive:"Precision: attacks bypass dodge. Immune bleed.",pType:"preciseAll",pType2:"immuneBleed",active:[{n:"Heal",cd:3,prio:true,desc:"+10% DEF, heal 150 HP 2t",fx:[{t:"buff",s:"def",p:10},{t:"regenFlat",amt:150,dur:2}]},{n:"Charge",cd:2,desc:"1.5x 60% stun",fx:[{t:"strike",m:1.5},{t:"stun",ch:60}]}],img:"https://static.wikia.nocookie.net/prehistory-revealed/images/1/1b/Tsintao.png/revision/latest?cb=20200531130356",desc:"A duck‑billed dinosaur with a forward‑pointing crest like a unicorn’s horn—a truly unusual hadrosaur."},
+    {n:"Olorotitan",r:"Brawler",h:830,s:875,a:875,d:810,tier:"Quaternary",passive:"Back Kick: 1x swap if prevented. Immune bleed.",pType:"immuneBleed",active:[{n:"Charge",cd:2,desc:"1.5x 50% stun",fx:[{t:"strike",m:1.5},{t:"stun",ch:50}]},{n:"Precise Tackle",cd:2,desc:"1.5x bypass dodge",fx:[{t:"strike",m:1.5,byDodge:true}]}],img:"https://i.redd.it/d2kcucyc255x.jpg",desc:"A crested hadrosaur from Russia with a wide, hatchet‑shaped crest that gave it an elegant silhouette."},
+    {n:"Deinocheirus",r:"Attacker",h:830,s:870,a:930,d:735,tier:"Quaternary",passive:"Lone Survivor: +30% ATK if last. ATK cannot be reduced.",pType:"loneSurvivor",pVal:30,pType2:"immuneAtkDown",active:[{n:"Claw Attack",cd:2,desc:"1.5x -30% DEF",fx:[{t:"strike",m:1.5},{t:"debuff",s:"def",p:-30,tg:"opp"}]},{n:"Critical Tail Attack",cd:1,desc:"1.3x 40% crit 1.6x",fx:[{t:"critCombined",baseM:1.3,critCh:40,critM:1.6}]}],img:"https://images.fineartamerica.com/images/artworkimages/mediumlarge/2/deinocheirus-dinosaur-mark-p-wittonscience-photo-library.jpg",desc:"A bizarre, giant ornithomimid with huge arms, a duck‑like bill, and a humped back—an oddball of the Cretaceous."},
+    {n:"Hatzegopteryx",r:"Ambush",h:700,s:1000,a:905,d:700,tier:"Quaternary",passive:"Aerial: 50% dodge 40%. Swoop In: swap-in 1x + 75% dodge next.",pType:"permDodge",dCh:50,dDp:40,pType2:"swapInAtkDodge",swM:1,swDodgeCh:75,active:[{n:"Skewer",cd:1,desc:"2x ATK",fx:[{t:"strike",m:2}]},{n:"Weakener",cd:1,desc:"1.5x -30% ATK",fx:[{t:"strike",m:1.5},{t:"debuff",s:"atk",p:-30,tg:"opp"}]}],img:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQNgOTo7qBEwMgQv_As7mvm_rlytDeJa6Cy8A&s",desc:"One of the largest flying animals ever, this giraffe‑sized pterosaur stalked the ground looking for small prey."},
+    {n:"Apatosaurus",r:"Resilient",h:950,s:800,a:760,d:840,tier:"Quaternary",passive:"Precision: attacks bypass dodge. Counter Swipe: 1x counter.",pType:"preciseAll",pType2:"counter",pVal:1,active:[{n:"Tail Swipe",cd:1,desc:"1.25x -20% SPD",fx:[{t:"strike",m:1.25},{t:"debuff",s:"spd",p:-20,tg:"opp"}]},{n:"Stomp",cd:1,desc:"1.5x, heal 10% HP",fx:[{t:"strike",m:1.5},{t:"healPct",p:10}]}],img:"https://i.etsystatic.com/7367599/r/il/85dcac/1279797848/il_570xN.1279797848_ngcu.jpg",desc:"A giant sauropod once known as Brontosaurus; it could crack its whip‑like tail with a deafening sonic boom."},
+    {n:"Patagotitan",r:"Tank",h:1000,s:700,a:760,d:925,tier:"Quaternary",passive:"Counter Swipe: 0.5x -15% SPD. Regen 75 HP/turn. Immune bleed.",pType:"counterSwipe",pType2:"immuneBleed",regenPassive:75,active:[{n:"Mega Stomp",cd:3,desc:"2.5x ATK",fx:[{t:"strike",m:2.5}]}],img:"https://i.etsystatic.com/7367599/r/il/4097b4/6330637074/il_fullxfull.6330637074_rd96.jpg",desc:"One of the heaviest dinosaurs ever, this colossal titanosaur shook the ground with every step."},
+    {n:"Barosaurus",r:"Brawler",h:890,s:810,a:825,d:860,tier:"Quaternary",passive:"Precise Counter: 1x bypass dodge. Regen 10% HP/turn.",pType:"preciseCounter",pType2:"regenPassive",regenPct:10,active:[{n:"Slowing Strike",cd:1,desc:"1.5x -25% SPD",fx:[{t:"strike",m:1.5},{t:"debuff",s:"spd",p:-25,tg:"opp"}]},{n:"Critical Breaker",cd:2,desc:"1x -20% DEF, 40% chance -40%",fx:[{t:"strike",m:1},{t:"debuffRoll",s:"def",p:-20,ch:40,big:-40,tg:"opp"}]}],img:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSlhvjtDYshc3xrx3A47pKB-4sQYNFTxkgDrA&s",desc:"A long‑necked sauropod with a slender, elegant build; its neck could stretch over 9 metres long."},
+    {n:"Mamenchisaurus",r:"Tank",h:975,s:725,a:740,d:950,tier:"Quaternary",passive:"Critical Counter: 1x, 50% 1.5x. Immune bleed.",pType:"critCounter",pType2:"immuneBleed",active:[{n:"Slowing Strike",cd:2,desc:"1.25x -20% SPD",fx:[{t:"strike",m:1.25},{t:"debuff",s:"spd",p:-20,tg:"opp"}]},{n:"Heal",cd:3,prio:true,desc:"+10% DEF, heal 30% HP",fx:[{t:"buff",s:"def",p:10},{t:"healPct",p:30}]}],img:"https://64.media.tumblr.com/09cec0761cc8ee6738cfbce04af3787c/tumblr_inline_pbkuuu2CBV1rx4yme_500.jpg",desc:"Its neck made up more than half of its body length—a truly extreme sauropod from China."},
+    {n:"Suchomimus",r:"Pursuit",h:850,s:950,a:820,d:750,tier:"Quaternary",passive:"Swimmer: 30% dodge. Clamp: prevent swap.",pType:"permDodge",dCh:30,dDp:100,pType2:"preventSwap",active:[{n:"Lunge",cd:1,desc:"2x ATK",fx:[{t:"strike",m:2}]},{n:"Bite",cd:2,desc:"1.5x -30% DEF",fx:[{t:"strike",m:1.5},{t:"debuff",s:"def",p:-30,tg:"opp"}]}],img:"https://images.fineartamerica.com/images/artworkimages/medium/3/suchomimus-in-a-sunlit-forest-daniel-eskridge.jpg",desc:"A fish‑eating spinosaur with crocodile‑like jaws and a small sail; it was a master fisher of the Cretaceous."},
+    {n:"Tuojiangosaurus",r:"Brawler",h:850,s:850,a:875,d:890,tier:"Quaternary",passive:"Spiky: 50% 200 flat reflect. Counter Critical: 0.75x 25% 1.5x.",pType:"flatReflectChance",pVal:200,pCh:50,pType2:"counterCrit",counterM:0.75,critCh:25,critMult:1.5,active:[{n:"Lethal Impalement",cd:3,desc:"2x + bleed 20% 5t",fx:[{t:"strike",m:2},{t:"bleed",pct:20,dur:5}]},{n:"Precise Swipe",cd:1,desc:"1.25x bypass dodge",fx:[{t:"strike",m:1.25,byDodge:true}]}],img:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQF5VXXHA5wwsiPb44q-JOi1o4sUoDv-x5ELQ&s",desc:"A Chinese stegosaur with tall, narrow plates and shoulder spikes that pointed outward like spears."},
+    {n:"Daspletosaurus",r:"Pursuit",h:860,s:920,a:850,d:760,tier:"Quaternary",passive:"Swap In Strike: 1x bypass DEF.",pType:"swapInAtk",swM:1,swB:100,active:[{n:"Bone Breaker",cd:2,desc:"1.6x -20% SPD",fx:[{t:"strike",m:1.6},{t:"debuff",s:"spd",p:-20,tg:"opp"}]},{n:"Critical Chomp",cd:1,desc:"1.3x bypass 40%, 60% crit 1.7x",fx:[{t:"critCombined",baseM:1.3,by:40,critCh:60,critM:1.7}]},{n:"Ferocious Roar",cd:2,desc:"+30% ATK, -15% DEF opp",fx:[{t:"buff",s:"atk",p:30},{t:"debuff",s:"def",p:-15,tg:"opp"}]}],img:"https://upload.wikimedia.org/wikipedia/commons/a/a5/Daspletosaurus_torosus_steveoc.jpg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=original",desc:"A fearsome tyrannosaur with massive bone‑crushing jaws; it hunted in the late Cretaceous of North America."},
+    {n:"Tarbosaurus",r:"Attacker",h:860,s:830,a:960,d:780,tier:"Quaternary",passive:"Devourer: heal 20% 3t after kill. Revenge Rampage: 3x(2x) bypass.",pType:"devourer",pVal:20,active:[{n:"Critical Chomp",cd:1,desc:"1.25x 50% crit 1.75x",fx:[{t:"critCombined",baseM:1.25,critCh:50,critM:1.75}]},{n:"Defense Shatterer",cd:2,desc:"1.5x -30% DEF",fx:[{t:"strike",m:1.5},{t:"debuff",s:"def",p:-30,tg:"opp"}]},{n:"Revenge Rampage",cd:3,desc:"3x bypass if revenge, else 2x bypass",fx:[{t:"revengeStrike",m:3,m2:2,by:100}]}],img:"https://preview.redd.it/heres-my-tarbosaurus-design-for-my-book-this-is-a-remake-v0-x0x4c7p2z3pc1.png?auto=webp&s=6be7b893f3d89e926cd70038e35d98caad96bedc",desc:"The Asian cousin of T‑rex, this Mongolian giant terrorised the ancient Gobi Desert."},
+    {n:"Albertosaurus",r:"Brawler",h:875,s:820,a:890,d:830,tier:"Quaternary",passive:"Swap In Strike: 1x. Ferociousness: +10% ATK after hit.",pType:"swapInAtk",swM:1,swB:0,pType2:"ferociousness",active:[{n:"Rampage and Run",cd:3,desc:"2x then swap",fx:[{t:"strike",m:2},{t:"swapSelf"}]},{n:"Critical Chomp",cd:2,desc:"1.25x bypass, 30% crit 2x bypass",fx:[{t:"critCombined",baseM:1.25,by:100,critCh:30,critM:2}]}],img:"https://static.wikia.nocookie.net/dinosaurs/images/d/d4/Albertogabriel.png/revision/latest?cb=20220902190534",desc:"A fast‑moving tyrannosaur that hunted in packs; its slender build made it one of the swift large carnivores."},
+    {n:"Rajasaurus",r:"Pursuit",h:830,s:975,a:810,d:710,tier:"Quaternary",passive:"Chase Down: prevent swap + 1x if attempt. Runner: immune SPD down.",pType:"chaseDown",pType2:"immuneSpdDown",active:[{n:"Bone Breaker",cd:2,desc:"1.25x -20% SPD",fx:[{t:"strike",m:1.25},{t:"debuff",s:"spd",p:-20,tg:"opp"}]},{n:"Critical Chomp",cd:1,desc:"1x 25% crit 1.8x",fx:[{t:"critCombined",baseM:1,critCh:25,critM:1.8}]}],img:"https://images.fineartamerica.com/images/artworkimages/mediumlarge/2/rajasaurus-daniel-eskridge.jpg",desc:"A horned abelisaur from India, built like a battering ram with a short, muscular skull."},
+    {n:"Zhuchengtyrannus",r:"Attacker",h:890,s:800,a:1000,d:760,tier:"Quaternary",passive:"Devourer: heal 50% dmg taken after kill. Counter Crunch: 0.4x bypass.",pType:"devourerHeal",pVal:50,pType2:"counterBypass",pVal:0.4,active:[{n:"Critical Chomp",cd:2,desc:"1.5x bypass 30%, 60% bypass 75%",fx:[{t:"critCombined",baseM:1.5,by:30,critCh:60,critBypass:75}]},{n:"Lockjaw",cd:3,desc:"2x -30% DEF, prevent swap 2t",fx:[{t:"strike",m:2},{t:"debuff",s:"def",p:-30,tg:"opp"},{t:"preventSwapDur",dur:2}]}],img:"https://pbs.twimg.com/media/GDM7BGuWIAA6LqX.jpg",desc:"A Chinese tyrannosaur with a name that means 'tyrant of Zhucheng'; it had a powerful bite and a tough skull."},
+
+    // ===== LEGENDARY (20) =====
+    {n:"Ankylosaurus",r:"Tank",h:1175,s:925,a:975,d:1200,tier:"Legendary",passive:"Impenetrable Shell: DEF cannot be reduced. Counter Strike: 0.5x ATK + -10% SPD on hit.",pType:"immuneDefDown",pType2:"counterStrike",counterM:0.5,counterSlow:10,active:[{n:"Shin Breaker",cd:2,desc:"2x ATK, -50% SPD opp",fx:[{t:"strike",m:2},{t:"debuff",s:"spd",p:-50,tg:"opp"}]},{n:"Rhythmic Thumping",cd:2,prio:true,desc:"+10% ATK/DEF",fx:[{t:"buff",s:"atk",p:10},{t:"buff",s:"def",p:10}]},{n:"Swift Spin",cd:1,desc:"1.25x ATK, -15% DEF opp",fx:[{t:"strike",m:1.25},{t:"debuff",s:"def",p:-15,tg:"opp"}]}],img:"https://cdn.displate.com/artwork/270x380/2025-12-24/772a1345-8c0f-417b-8688-1797e8a5bf57.jpg",desc:"A living tank with an impenetrable armour of bony plates and a tail club that could shatter bones."},
+    {n:"Triceratops",r:"Attacker",h:1080,s:1070,a:1140,d:975,tier:"Legendary",passive:"Regeneration: heal 10% max HP each turn.",pType:"regenPassive",regenPct:10,active:[{n:"Rex's Rival",cd:3,desc:"4x ATK",fx:[{t:"strike",m:4}]},{n:"Triple Impaler",cd:4,desc:"3x ATK + bleed 34% 3t",fx:[{t:"strike",m:3},{t:"bleed",pct:34,dur:3}]},{n:"Bulldozer",cd:3,desc:"2x ATK bypass 30% DEF, 50% stun",fx:[{t:"strike",m:2,by:30},{t:"stun",ch:50}]},{n:"Dig In",cd:4,desc:"-50% dmg next hit, heal 20% HP, +20% ATK/DEF",fx:[{t:"dmgReduceNext",pct:50},{t:"healPct",p:20},{t:"buff",s:"atk",p:20},{t:"buff",s:"def",p:20}]}],img:"https://preview.redd.it/realistically-how-aggressive-would-a-triceratops-be-v0-06pv1qyn5ike1.jpeg?auto=webp&s=6c13230498b7e9eac9cf76086cd3467d46d9eb65",desc:"Armed with three massive horns and a frill shield, Triceratops could hold its own against the largest tyrannosaurs."},
+    {n:"Deinosuchus",r:"Ambush",h:950,s:1140,a:1160,d:925,tier:"Legendary",passive:"Devourer: heal 20% max HP on kill.",pType:"devourer",pVal:20,active:[{n:"Death Roll",cd:2,desc:"3x ATK, -25% ATK opp",fx:[{t:"strike",m:3},{t:"debuff",s:"atk",p:-25,tg:"opp"}]},{n:"Hemorrhage",cd:5,desc:"3x ATK + bleed 20% 5t",fx:[{t:"strike",m:3},{t:"bleed",pct:20,dur:5}]},{n:"Lie in Wait",cd:3,desc:"100% dodge 100%, next ATK 3x",fx:[{t:"dodgeSelf",ch:100,dp:100,dur:1},{t:"buffNextAtk",mult:3}]},{n:"Lockjaw",cd:3,desc:"2x ATK, -10% SPD opp, prevent swap 2t",fx:[{t:"strike",m:2},{t:"debuff",s:"spd",p:-10,tg:"opp"},{t:"preventSwapDur",dur:2}]}],img:"https://cdnb.artstation.com/p/assets/images/images/029/195/357/large/frederic-wierum-christian-flores-deinosuchus2-5.jpg?1596740817",desc:"A monster alligator that hunted dinosaurs; it could grow over 12 metres long and bite with the force of a truck."},
+    {n:"Shantungosaurus",r:"Resilient",h:1175,s:1025,a:960,d:1050,tier:"Legendary",passive:"Heavyweight: immune SPD/DEF down. Thick Scales: immune bleed.",pType:"immuneSpdDown",pType2:"immuneDefDown",pType3:"immuneBleed",active:[{n:"Precise Takedown",cd:3,desc:"3x ATK bypass dodge",fx:[{t:"strike",m:3,byDodge:true}]},{n:"Stunning Tackle",cd:2,desc:"2x ATK, 75% stun",fx:[{t:"strike",m:2},{t:"stun",ch:75}]},{n:"Intimidating Bellow",cd:2,prio:true,desc:"-10% ATK/SPD/DEF opp",fx:[{t:"debuff",s:"atk",p:-10,tg:"opp"},{t:"debuff",s:"spd",p:-10,tg:"opp"},{t:"debuff",s:"def",p:-10,tg:"opp"}]}],img:"https://cdnb.artstation.com/p/assets/images/images/006/930/597/medium/raul-ramos-draw-dinovember-2016-day-29-shantungosaurus.jpg?1502339516",desc:"The largest known hadrosaur, it weighed more than an elephant and could still walk on two legs when needed."},
+    {n:"Edmontosaurus",r:"Resilient",h:1150,s:1050,a:980,d:1075,tier:"Legendary",passive:"Thick Scales: immune bleed. Thick Headed: immune stun.",pType:"immuneBleed",pType2:"immuneStun",active:[{n:"Precise Tackle",cd:2,desc:"2x ATK bypass dodge",fx:[{t:"strike",m:2,byDodge:true}]},{n:"Bone Breaker",cd:1,desc:"1.5x ATK, -10% SPD opp",fx:[{t:"strike",m:1.5},{t:"debuff",s:"spd",p:-10,tg:"opp"}]},{n:"Brace",cd:2,prio:true,desc:"Cleanse self, +20% DEF",fx:[{t:"cleanse"},{t:"buff",s:"def",p:20}]}],img:"https://cdnb.artstation.com/p/assets/images/images/042/967/875/large/kendjee-zee-3.jpg?1635934405",desc:"A giant duck‑billed dinosaur with a wide, flat beak for cropping tough plants; it lacked any head crest."},
+    {n:"Saurolophus",r:"Brawler",h:1070,s:1020,a:1040,d:1050,tier:"Legendary",passive:"Thick Headed: immune stun.",pType:"immuneStun",active:[{n:"Revenge Tackle",cd:2,desc:"2x bypass 30% DEF (revenge: 3x bypass 40%)",fx:[{t:"revengeCritCombined",baseM:2,by:30,revengeM:3,revengeBy:40}]},{n:"Camouflaged Strike",cd:1,desc:"1.5x ATK, 60% dodge 40%",fx:[{t:"strike",m:1.5},{t:"dodgeSelf",ch:60,dp:40,dur:1}]},{n:"Brace",cd:1,prio:true,desc:"+10% DEF",fx:[{t:"buff",s:"def",p:10}]},{n:"Heal",cd:4,prio:true,desc:"Heal 50% max HP",fx:[{t:"healPct",p:50}]}],img:"https://64.media.tumblr.com/3f6b5fa039a464f226bf409695016336/tumblr_pnuqh2XbQc1rdmgfbo1_1280.jpg",desc:"A large hadrosaur with a single, solid crest that slanted backward—likely used for species recognition."},
+    {n:"Tyrannosaurus",r:"Attacker",h:1075,s:1035,a:1200,d:925,tier:"Legendary",passive:"Padded Feet: cannot trigger opponent passives.",pType:"preventPassiveTrigger",active:[{n:"The Strongest Bite",cd:5,desc:"3x ATK bypass DEF",fx:[{t:"strike",m:3,by:100}]},{n:"Bones like Twigs",cd:2,desc:"1.5x ATK, -25% DEF/SPD opp",fx:[{t:"strike",m:1.5},{t:"debuff",s:"def",p:-25,tg:"opp"},{t:"debuff",s:"spd",p:-25,tg:"opp"}]},{n:"Flesh Shredder",cd:2,desc:"1x ATK + bleed 10% 5t + wound 30% max HP (revenge: 3x + bleed 35% 3t)",fx:[{t:"strike",m:1},{t:"bleed",pct:10,dur:5},{t:"woundMaxHp",pct:30},{t:"revengeStrike",m:3,m2:1,by:0},{t:"bleed",pct:35,dur:3}]},{n:"Tyrant's Roar",cd:5,desc:"+50% ATK self, +20% ATK all backups, -10% ATK opp backups",fx:[{t:"buff",s:"atk",p:50},{t:"teamBuff",target:"self",stat:"atk",pct:50},{t:"teamBuff",target:"ally",stat:"atk",pct:20},{t:"teamBuff",target:"enemy",stat:"atk",pct:-10}]}],img:"https://preview.redd.it/favorite-t-rex-designs-v0-6uhzm8wg4gra1.png?width=640&crop=smart&auto=webp&s=fc1476230b0972bab2bc004e3d69d181b8606fa5",desc:"The most famous dinosaur, T‑rex had razor‑sharp teeth and a bite strength of up to 7 tons."},
+    {n:"Acrocanthosaurus",r:"Brawler",h:1060,s:1090,a:1080,d:1010,tier:"Legendary",passive:"Devourer: heal 25% max HP on kill. Heavyweight Counter: counter 20% opp max HP (10% if lower def).",pType:"devourer",pVal:25,pType2:"heavyCounter",active:[{n:"Shredding Bite",cd:2,desc:"2x ATK + bleed 20% 2t",fx:[{t:"strike",m:2},{t:"bleed",pct:20,dur:2}]},{n:"Terrifying Roar",cd:4,desc:"-20% ATK opp, force swap",fx:[{t:"debuff",s:"atk",p:-20,tg:"opp"},{t:"forceSwap",triggerPassives:false}]},{n:"Intimidating Stance",cd:3,desc:"-20% ATK/DEF opp",fx:[{t:"debuff",s:"atk",p:-20,tg:"opp"},{t:"debuff",s:"def",p:-20,tg:"opp"}]}],img:"https://i.redd.it/w892ogydag7e1.jpeg",desc:"A towering predator with a tall sail of muscle on its back—possibly used for display or temperature control."},
+    {n:"Giganotosaurus",r:"Pursuit",h:1075,s:1140,a:1040,d:940,tier:"Legendary",passive:"Chase Down: prevent swap + 1.5x ATK if attempted.",pType:"chaseDown",active:[{n:"Swift Predator",cd:3,desc:"75% dodge 50%, 3x ATK bypass 20% DEF",fx:[{t:"dodgeSelf",ch:75,dp:50,dur:1},{t:"strike",m:3,by:20}]},{n:"Terrifying Roar",cd:3,desc:"-30% ATK/DEF opp, 30% force swap (no Chase)",fx:[{t:"debuff",s:"atk",p:-30,tg:"opp"},{t:"debuff",s:"def",p:-30,tg:"opp"},{t:"forceSwap",ch:30,triggerPassives:false}]},{n:"Camouflaged Rampage",cd:2,desc:"100% dodge 50%, 2.5x ATK",fx:[{t:"dodgeSelf",ch:100,dp:50,dur:1},{t:"strike",m:2.5}]},{n:"Hemorrhage",cd:2,desc:"1x ATK + bleed 10% 3t",fx:[{t:"strike",m:1},{t:"bleed",pct:10,dur:3}]}],img:"https://i.pinimg.com/736x/6b/50/42/6b5042986b6b0cc8b729da9fe72943d2.jpg",desc:"Even larger than T‑rex, this South American giant was one of the biggest land carnivores of all time."},
+    {n:"Carcharodontosaurus",r:"Ambush",h:975,s:1170,a:1140,d:925,tier:"Legendary",passive:"Serrated Teeth: all attacks bleed 20% 2t. Desert Scavenger: heal 5% max HP in backup.",pType:"allBleed",pType2:"desertScavenger",active:[{n:"Shark-Toothed Monster",cd:3,desc:"6x ATK, -25% ATK opp",fx:[{t:"strike",m:6},{t:"debuff",s:"atk",p:-25,tg:"opp"}]},{n:"Anticipating Roar",cd:3,desc:"90% dodge 75%, next ATK 2x",fx:[{t:"dodgeSelf",ch:90,dp:75,dur:1},{t:"buffNextAtk",mult:2}]},{n:"Eat and Escape",cd:4,desc:"3x ATK, heal 25% HP, swap",fx:[{t:"strike",m:3},{t:"healPct",p:25},{t:"swapSelf"}]}],img:"https://images.fineartamerica.com/images/artworkimages/mediumlarge/1/carcharodontosaurus-iguidensis-sergey-krasovskiy.jpg",desc:"With teeth like a great white shark, this African predator sliced through flesh with terrifying efficiency."},
+    {n:"Tyrannotitan",r:"Attacker",h:1040,s:1040,a:1150,d:910,tier:"Legendary",passive:"Bloodthirsty: +20% ATK vs bleeding. Devourer: heal 50% dmg taken on kill.",pType:"bloodthirsty",pType2:"devourerHeal",pVal:50,active:[{n:"Bloodbath",cd:5,desc:"1.5x ATK + bleed 25% 4t",fx:[{t:"strike",m:1.5},{t:"bleed",pct:25,dur:4}]},{n:"Ferocious Rampage",cd:3,desc:"2x ATK bypass 50% DEF",fx:[{t:"strike",m:2,by:50}]},{n:"Intimidating Roar",cd:3,desc:"-25% ATK/SPD opp, +30% ATK self",fx:[{t:"debuff",s:"atk",p:-25,tg:"opp"},{t:"debuff",s:"spd",p:-25,tg:"opp"},{t:"buff",s:"atk",p:30}]}],img:"https://i.redd.it/sq79fbgd4ojb1.jpg",desc:"A massive, stocky carcharodontosaurid that rivalled T‑rex in size—its name means 'tyrant titan'."},
+    {n:"Mapusaurus",r:"Pursuit",h:1050,s:1130,a:1030,d:920,tier:"Legendary",passive:"Swap in Slicer: swap-in attack 2x ATK. Sneaky: always 30% dodge 50%.",pType:"swapInAtk",swM:2,swB:0,pType2:"permDodge",dCh:30,dDp:50,active:[{n:"Cookie Cutter",cd:2,desc:"3x ATK, wound=max dmg dealt",fx:[{t:"strike",m:3},{t:"woundByLastDmg"}]},{n:"Hemorrhage",cd:3,desc:"1.5x ATK + bleed 20% 3t",fx:[{t:"strike",m:1.5},{t:"bleed",pct:20,dur:3}]},{n:"Critical Chomp",cd:2,desc:"2x ATK, 50% crit to 3x",fx:[{t:"critCombined",baseM:2,critCh:50,critM:3}]}],img:"https://cdna.artstation.com/p/assets/images/images/068/753/230/large/aleksart-mapusaurus.jpg?1698584023",desc:"A pack‑hunting giant that may have worked together to take down enormous sauropod prey."},
+    {n:"Therizinosaurus",r:"Attacker",h:1020,s:1045,a:1120,d:920,tier:"Legendary",passive:"Rising Anger: +5% ATK each turn. Regeneration: heal 10% max HP each turn.",pType:"risingAnger",pType2:"regenPassive",regenPct:10,active:[{n:"Impalement",cd:4,desc:"3x ATK + bleed 20% 3t",fx:[{t:"strike",m:3},{t:"bleed",pct:20,dur:3}]},{n:"Slicers",cd:2,desc:"2x ATK bypass 50% DEF",fx:[{t:"strike",m:2,by:50}]},{n:"Nullifier Strike",cd:2,desc:"1x ATK, nullify all effects",fx:[{t:"strike",m:1},{t:"nullify"}]}],img:"https://i.redd.it/d1x05uj17mg91.png",desc:"A bizarre giant with enormous, scimitar‑like claws; despite its look, it was a peaceful plant‑eater."},
+    {n:"Quetzalcoatlus",r:"Ambush",h:900,s:1200,a:1110,d:900,tier:"Legendary",passive:"Swiftness: SPD cannot be reduced. Speed Demon: always 75% dodge 50%.",pType:"immuneSpdDown",pType2:"permDodge",dCh:75,dDp:50,active:[{n:"Dragon of the Sky",cd:3,desc:"3x ATK, -25% ATK opp",fx:[{t:"strike",m:3},{t:"debuff",s:"atk",p:-25,tg:"opp"}]},{n:"Pecking Order",cd:2,desc:"4x ATK",fx:[{t:"strike",m:4}]},{n:"Aerial Barrage",cd:2,desc:"2x ATK, 100% dodge 75% next",fx:[{t:"strike",m:2},{t:"dodgeSelf",ch:100,dp:75,dur:1}]}],img:"https://i.redd.it/9rltg6suxord1.jpeg",desc:"The largest flying creature ever; it stood as tall as a giraffe and had a wingspan of over 12 metres."},
+    {n:"Brachiosaurus",r:"Tank",h:1190,s:910,a:915,d:1150,tier:"Legendary",passive:"Heavyweight: DEF cannot be reduced. Thick Scales: immune bleed.",pType:"immuneDefDown",pType2:"immuneBleed",active:[{n:"Gentle Giant",cd:5,prio:true,desc:"Full heal self, heal all backups 10% max HP",fx:[{t:"fullHeal"},{t:"healBackup",pct:10}]},{n:"Bone Breaking Stomp",cd:2,desc:"3x ATK, -10% SPD/DEF opp",fx:[{t:"strike",m:3},{t:"debuff",s:"spd",p:-10,tg:"opp"},{t:"debuff",s:"def",p:-10,tg:"opp"}]},{n:"Brace",cd:3,prio:true,desc:"-50% dmg on next hit",fx:[{t:"dmgReduceNext",pct:50}]}],img:"https://images.fineartamerica.com/images/artworkimages/medium/2/brachiosaurus-valley-daniel-eskridge.jpg",desc:"A towering sauropod with front legs longer than its hind legs, it browsed the treetops like a living skyscraper."},
+    {n:"Diplodocus",r:"Resilient",h:1180,s:1000,a:940,d:1090,tier:"Legendary",passive:"Regeneration: heal 10% max HP each turn. Precision: attacks bypass dodge.",pType:"regenPassive",regenPct:10,pType2:"preciseAll",active:[{n:"Tail Whip",cd:1,desc:"2x ATK, -10% DEF opp",fx:[{t:"strike",m:2},{t:"debuff",s:"def",p:-10,tg:"opp"}]},{n:"Sauropod Bellow",cd:3,prio:true,desc:"+20% ATK/DEF self, -20% SPD opp",fx:[{t:"buff",s:"atk",p:20},{t:"buff",s:"def",p:20},{t:"debuff",s:"spd",p:-20,tg:"opp"}]},{n:"Cleansing Stomp",cd:3,desc:"Cleanse self, 1.5x ATK",fx:[{t:"cleanse"},{t:"strike",m:1.5}]}],img:"https://i.redd.it/px6gaoaedivy.png",desc:"A long, slender sauropod whose whip‑like tail could crack loud enough to startle any predator."},
+    {n:"Argentinosaurus",r:"Tank",h:1200,s:900,a:925,d:1175,tier:"Legendary",passive:"Intimidator: each turn -10% ATK opp (max 30%). Precision: attacks bypass dodge.",pType:"intimidator",pType2:"preciseAll",active:[{n:"Stunning Trample",cd:3,desc:"2x ATK, 40% stun",fx:[{t:"strike",m:2},{t:"stun",ch:40}]},{n:"Slowing Tackle",cd:1,desc:"1.5x ATK, -20% SPD opp",fx:[{t:"strike",m:1.5},{t:"debuff",s:"spd",p:-20,tg:"opp"}]},{n:"Bone Breaker",cd:1,desc:"1.5x ATK, -10% ATK/DEF opp",fx:[{t:"strike",m:1.5},{t:"debuff",s:"atk",p:-10,tg:"opp"},{t:"debuff",s:"def",p:-10,tg:"opp"}]}],img:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRJiPQ3PwhKnR4gVuWQPkwgO-MBXqKySz7sFg&s",desc:"One of the largest dinosaurs ever discovered, this colossal titanosaur weighed over 70 tonnes."},
+    {n:"Giraffatitan",r:"Brawler",h:1090,s:1030,a:1020,d:1075,tier:"Legendary",passive:"",active:[{n:"Tail Whip",cd:3,desc:"1x ATK + bleed 10% 3t",fx:[{t:"strike",m:1},{t:"bleed",pct:10,dur:3}]},{n:"Critical Stomp",cd:2,desc:"2x ATK, 40% crit 3x",fx:[{t:"critCombined",baseM:2,critCh:40,critM:3}]},{n:"Bone Breaker",cd:2,desc:"2x ATK, -10% SPD/DEF opp",fx:[{t:"strike",m:2},{t:"debuff",s:"spd",p:-10,tg:"opp"},{t:"debuff",s:"def",p:-10,tg:"opp"}]},{n:"Precise Tackle",cd:2,desc:"1.5x ATK bypass dodge",fx:[{t:"strike",m:1.5,byDodge:true}]},{n:"Ferocious Bellow",cd:3,desc:"+20% ATK self",fx:[{t:"buff",s:"atk",p:20}]}],img:"https://64.media.tumblr.com/08b4f60ceb902cfd7a43a2e8be1723f6/tumblr_inline_nydpjzmoNf1rx4yme_1280.png",desc:"A massive sauropod once thought to be a species of Brachiosaurus—it had one of the tallest statures ever."},
+    {n:"Spinosaurus",r:"Pursuit",h:1080,s:1130,a:1030,d:925,tier:"Legendary",passive:"Lone Survivor: +20% ATK/DEF if last. Vengeance: double damage next ATK after teammate dies.",pType:"loneSurvivor",pVal:20,pType2:"vengeance",active:[{n:"Sailed Assault",cd:2,desc:"3x ATK bypass 40% DEF",fx:[{t:"strike",m:3,by:40}]},{n:"Wounding Slash",cd:4,desc:"Bleed 30% 3t, each tick also wounds",fx:[{t:"bleedWithWound",pct:30,dur:3}]},{n:"Stunning Immobilizer",cd:3,desc:"2x ATK, 50% stun, prevent swap while active",fx:[{t:"strike",m:2},{t:"stun",ch:50},{t:"preventSwapSelf"}]}],img:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ3Abynj0y41Lv_9_JiRwRsj9xRSLyYGmVOiw&s",desc:"With a huge sail on its back and a crocodile‑like snout, Spinosaurus ruled both land and water."},
+    {n:"Stegosaurus",r:"Attacker",h:1060,s:1020,a:1135,d:945,tier:"Legendary",passive:"Large Plates: halve stat reduction. Regeneration: heal 10% max HP each turn.",pType:"largePlates",pType2:"regenPassive",regenPct:10,active:[{n:"Thagomizer",cd:5,desc:"2.5x ATK + bleed 35% 2t",fx:[{t:"strike",m:2.5},{t:"bleed",pct:35,dur:2}]},{n:"Cleansing Impaler",cd:3,desc:"Cleanse self, bleed 20% 4t",fx:[{t:"cleanse"},{t:"bleed",pct:20,dur:4}]},{n:"Revenge Critical",cd:3,desc:"2x bypass 50% DEF (revenge: 3x bypass 75% DEF), 50% bypass 100%",fx:[{t:"revengeCritCombined",baseM:2,by:50,critCh:50,critBypass:100,revengeM:3,revengeBy:75}]}],img:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRZpK4TzxoL3OXJ5gRr97pyEMb2lP9aa4HG4w&s",desc:"A Jurassic icon with diamond‑shaped plates and a spiked tail it could swing with lethal precision."}
+  ];
+  return list;
+};
+
+const DB = makeDB();
+const PLACEHOLDER_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50%25' y='50%25' font-size='80' text-anchor='middle' dy='.35em' fill='%238b6b3c'%3E%3F%3C/text%3E%3C/svg%3E";
+
+function rarityClass(t) {
+  if(t==="Primary") return "rarity-primary";
+  if(t==="Secondary") return "rarity-secondary";
+  if(t==="Tertiary") return "rarity-tertiary";
+  if(t==="Quaternary") return "rarity-quaternary";
+  if(t==="Legendary") return "rarity-legendary";
+  return "";
+}
+function roleEmoji(r) { return {Ambush:'🔴',Pursuit:'🟠',Attacker:'🟡',Resilient:'🟢',Tank:'🔵',Brawler:'⚪️'}[r]||'⚪️'; }
+
+// ==================== GAME ENGINE ====================
+class DinoState {
+  constructor(base) {
+    Object.assign(this, base);
+    this.maxHp=base.h; this.hp=base.h; this.spd=base.s; this.atk=base.a; this.def=base.d;
+    this.spdMod=0; this.atkMod=0; this.defMod=0;
+    this.bleeds=[]; this.wound=0; this.dodgeCh=0; this.dodgeDp=0; this.dodgeDur=0;
+    this.regenPct=0; this.regenDur=0; this.regenFlat=0; this.regenFlatDur=0;
+    this.venom=false; this.stunned=false;
+    this.cooldowns={}; this.dead=false; this.totalDmgTaken=0; this.lastHp=this.hp;     
+this.lastHeal=0;
+    this.revengeActive=false;
+    this.swapInAtk=base.pType==="swapInAtk"||base.pType==="swapInAtkDodge"?{m:base.swM||1,by:base.swB||0,dodge:(base.pType==="swapInAtkDodge"?{ch:base.swDodgeCh||75,dp:100}:null)}:null;
+    this.preventSwap=base.pType==="preventSwap";
+    this.preventSwapUnlessFaster=base.pType==="preventSwapUnlessFaster";
+    this.noCounter=base.pType==="noCounter";
+    this.immuneDefDown=base.pType==="immuneDefDown"||base.pType2==="immuneDefDown"||base.pType3==="immuneDefDown";
+    this.immuneBleed=base.pType==="immuneBleed"||base.pType2==="immuneBleed"||base.pType3==="immuneBleed";
+    this.immuneStun=base.pType==="immuneStun"||base.pType2==="immuneStun"||base.pType3==="immuneStun";
+    this.immuneSpdDown=base.pType==="immuneSpdDown"||base.pType2==="immuneSpdDown"||base.pType3==="immuneSpdDown";
+    this.immuneAtkDown=base.pType==="immuneAtkDown";
+    this.immuneAtkSpdDown=base.pType==="immuneAtkSpdDown";
+    this.counterPercent=base.pType==="counter"?base.pVal:(base.pType==="counterBypass"?base.pVal:0);
+    this.counterBypass=base.pType==="counterBypass";
+    this.reflectPercent=base.pType==="reflect"?base.pVal:0;
+    this.revengeMult=base.rMult||0;
+    this.braceDef=base.pType==="brace"?10:0;
+    this.stunStrike=base.pType==="stunStrike"||base.pType2==="stunStrike";
+    this.paybackAnger=base.pType2==="paybackAnger";
+    this.greenSupport=base.pType==="greenSupport";
+    this.healerCounter=base.pType2==="healerCounter";
+    this.dodgeIfFaster=base.pType==="dodgeIfFaster"?{ch:base.dCh||50,dp:base.dDp||100}:null;
+    this.permDodge=base.pType==="permDodge"?{ch:base.dCh||25,dp:base.dDp||50}:null;
+    this.bypassChance=base.pType==="bypassChance"?{ch:base.pCh||25,bp:base.pBp||50}:null;
+    this.flatReflect=base.pType==="flatReflect"?base.pVal:0;
+    this.flatReflectChance=base.pType==="flatReflectChance"?{val:base.pVal,ch:base.pCh}:null;
+    this.frillReflect=base.pType==="frillReflect";
+    this.pinSwap=base.pType==="pinSwap";
+    this.ambushInDodge=base.pType2==="ambushInDodge";
+    this.juggernaut=base.pType==="juggernaut";
+    this.bloodthirsty=base.pType==="bloodthirsty";
+    this.buffNextAtk=0;
+    this.activeAbilities=base.active||[];
+    this.passive=base.passive||"";
+    this.resistDefDown=base.pType==="resistDefDown"?base.pVal:0;
+    this.slowOnHit=base.pType==="slowOnHit";
+    this.critCounter=base.pType==="critCounter";
+    this.counterCond=base.pType==="counterCond";
+    this.spdReflect=base.pType2==="spdReflect"?0.75:0;
+    this.ceratopsian=base.pType==="ceratopsian";
+    this.aggressiveness=base.pType2==="aggressiveness";
+    this.lockjaw=base.pType==="lockjaw";
+    this.loneSurvivor=base.pType==="loneSurvivor"?base.pVal:0;
+    this.devourer=base.pType==="devourer"?base.pVal:0;
+    this.devourerHeal=base.pType==="devourerHeal"?base.pVal:0;
+    this.chaseDown=base.pType==="chaseDown";
+    this.ferociousness=base.pType2==="ferociousness";
+    this.preciseCounter=base.pType==="preciseCounter";
+    this.counterSwipe=base.pType==="counterSwipe";
+    this.counterCrit=base.pType2==="counterCrit"?{m:base.counterM||0.75,ch:base.critCh||25,mult:base.critMult||1.5}:null;
+    this.dmgRedNext=0;
+    this.preventPassiveTrigger = base.pType==="preventPassiveTrigger";
+    this.allBleed = base.pType==="allBleed" ? {pct:20,dur:2} : null;
+    this.desertScavenger = base.pType2==="desertScavenger" ? 5 : 0;
+    this.vengeance = base.pType2==="vengeance" ? 2 : 0;
+    this.risingAnger = base.pType==="risingAnger" ? 5 : 0;
+    this.largePlates = base.pType==="largePlates" ? 0.5 : 1;
+    this.counterStrike = base.pType2==="counterStrike" ? {m:base.counterM||0.5, slow:base.counterSlow||10} : null;
+    this.intimidator = base.pType==="intimidator" ? {active:true, stacks:0, max:30} : null;
+    this.heavyCounter = base.pType2==="heavyCounter";
+    this.tempBuffs = []; // {stat, pct, dur}
+    let rp = 0;
+    if (base.pType==="regenPassive" || base.pType2==="regenPassive" || base.pType3==="regenPassive") {
+      rp = base.regenPct || (typeof base.regenPassive==='number' ? base.regenPassive : 0);
+    }
+    this.regenPassive = rp;
+    if (base.regenPassive && !base.regenPct && typeof base.regenPassive==='number') {
+      this.regenPassiveFlat = base.regenPassive;
+    } else {
+      this.regenPassiveFlat = 0;
+    }
+    if (base.n==="Patagotitan") { this.regenPassive=0; this.regenPassiveFlat=75; }
+  }
+  get currentSpd(){ return Math.max(1,this.spd+Math.round(this.spd*this.spdMod/100)); }
+  get currentAtk(){
+    let a=this.atk+Math.round(this.atk*this.atkMod/100);
+    if(this.juggernaut) a+=Math.round(this.atk*this.spdMod/100);
+    return Math.min(1600,a);
+  }
+  get currentDef(){ return Math.min(1600,this.def+Math.round(this.def*this.defMod/100)); }
+  get maxHpEff(){ return Math.max(1,this.maxHp-this.wound); }
+  heal(amt){ if(this.venom) return; this.hp=Math.min(this.maxHpEff,this.hp+amt); }
+  takeDamage(raw, bypass=0, attacker=null){
+    let effectiveDef = this.currentDef * (1 - bypass/100);
+    let dodgeMult=1;
+    let dodgeCh=this.dodgeCh;
+    if(this.permDodge) dodgeCh=Math.max(dodgeCh,this.permDodge.ch);
+    if(dodgeCh>0&&Math.random()*100<dodgeCh) dodgeMult=1-(this.dodgeDp||this.permDodge?.dp||0)/100;
+    if(this.dmgRedNext>0){ dodgeMult *= (1-this.dmgRedNext/100); this.dmgRedNext=0; }
+    let def = effectiveDef;
+    let mult = def<=800 ? 1-def/1000 : 0.2-(def-800)/5000;
+    let dmg = Math.round(raw*mult*dodgeMult);
+    this.lastHp=this.hp; this.hp-=dmg; this.totalDmgTaken+=dmg;
+    if(this.hp<=0){this.hp=0;this.dead=true;}
+    return {dmg,mult,defUsed:bypass>0?`${bypass}% bypass (eff def ${Math.round(effectiveDef)})`:`def ${Math.round(def)}`,dodged:dodgeMult<1};
+  }
+  gatherEffects(){
+    let eff=[];
+    if(this.atkMod) eff.push(`<span style="color:${this.atkMod>0?'green':'red'};">ATK ${this.atkMod>0?'+':''}${this.atkMod}%</span>`);
+    if(this.defMod) eff.push(`<span style="color:${this.defMod>0?'green':'red'};">DEF ${this.defMod>0?'+':''}${this.defMod}%</span>`);
+    if(this.spdMod) eff.push(`<span style="color:${this.spdMod>0?'green':'red'};">SPD ${this.spdMod>0?'+':''}${this.spdMod}%</span>`);
+    this.bleeds.forEach(b=>eff.push(`🩸 Bleed ${b.pct||b.dmg}×${b.dur}`));
+    if(this.wound) eff.push(`🩶 Wound -${this.wound} HP`);
+    if(this.dodgeCh>0) eff.push(`💨 Dodge ${this.dodgeCh}%`);
+    if(this.regenDur||this.regenFlatDur) eff.push(`🩷 Regen active`);
+    if(this.venom) eff.push(`🖤 Venom`);
+    if(this.stunned) eff.push(`💫 Stunned`);
+    if(this.revengeActive) eff.push(`⚔️ Revenge`);
+    if(this.loneSurvivor) eff.push(`🛡️ Lone Survivor +${this.loneSurvivor}%`);
+    this.tempBuffs.forEach(tb => {
+      let remain = tb.dur;
+      eff.push(`🟡 ${tb.stat.toUpperCase()} ${tb.pct>0?'+':''}${tb.pct}% (${remain}t)`);
+    });
+    return eff.length?eff:['None'];
+  }
+  endTurnEffects(){
+    let logs=[];
+    if(this.risingAnger && !this.dead){ this.atkMod+=this.risingAnger; logs.push(`${this.n} ATK +${this.risingAnger}% from Rising Anger.`); }
+    for(let i=this.bleeds.length-1;i>=0;i--){
+      let b=this.bleeds[i];
+      if(b.dur>0){
+        let dmg=b.flat?b.dmg:Math.round(this.maxHpEff*(b.pct||0)/100);
+        this.takeDamage(dmg,100);
+        logs.push(`${this.n} takes ${dmg} bleed dmg.`);
+        if(b.woundOnTick){ this.wound+=dmg; logs.push(`also wounds ${dmg}.`); }
+        b.dur--;
+        if(b.dur<=0) this.bleeds.splice(i,1);
+      }
+    }
+    // Process temporary buffs
+    for (let i = this.tempBuffs.length - 1; i >= 0; i--) {
+      let tb = this.tempBuffs[i];
+      if (tb.dur > 0) {
+        tb.dur--;
+        if (tb.dur <= 0) {
+          // revert the buff
+          if (tb.stat === 'atk') this.atkMod -= tb.pct;
+          else if (tb.stat === 'def') this.defMod -= tb.pct;
+          else if (tb.stat === 'spd') this.spdMod -= tb.pct;
+          this.tempBuffs.splice(i, 1);
+        }
+      }
+    }
+    if(this.regenDur>0){this.heal(Math.round(this.maxHp*this.regenPct/100));this.regenDur--;}
+    if(this.regenFlatDur>0){this.heal(this.regenFlat);this.regenFlatDur--;}
+    if(this.regenPassive>0&&!this.venom){ this.heal(Math.round(this.maxHp*this.regenPassive/100)); logs.push(`${this.n} regens ${this.regenPassive}% HP.`); }
+    if(this.regenPassiveFlat>0&&!this.venom){ this.heal(this.regenPassiveFlat); logs.push(`${this.n} regens ${this.regenPassiveFlat} HP.`); }
+    if(this.dodgeDur>0) this.dodgeDur--; else {this.dodgeCh=0;this.dodgeDp=0;}
+    this.stunned=false;
+    return logs;
+  }
+}
+
+class Player {
+  constructor(name){this.name=name;this.active=null;this.backup=[];this.lockdown=null;
+    this.selectedMove=null;this.locked=false;this.swapPending=false;this.swapTargetIdx=null;this.revengeFlag=false;}
+}
+
+class Battle {
+  constructor(p1Deck,p2Deck,p1Name,p2Name){
+    this.p1=new Player(p1Name||'P1');this.p2=new Player(p2Name||'P2');
+    this.turn=1;this.log=[];this.phase='selectP1';
+    this.timeline=[];this.timelineIdx=0;this.cooldownsToSet={};
+    this.needsReplacement=null;this.gameOver=false;this.winner=null;
+    let d1=p1Deck.sort(()=>Math.random()-0.5).slice(0,4).map(d=>new DinoState(d));
+    let d2=p2Deck.sort(()=>Math.random()-0.5).slice(0,4).map(d=>new DinoState(d));
+    this.p1.backup=d1;this.p2.backup=d2;
+}
+  getPlayerColor(player) {
+    return player === this.p1 ? '#e74c3c' : '#3498db';
+}
+  setActive(player,index){
+    if(player.active) player.backup.unshift(player.active);
+    player.active=player.backup.splice(index,1)[0];
+        this.logMsg(`${player.name} chose ${player.active.n}.`, player, player.active.n);
+  }
+    logMsg(msg, player = null, dinoName = null) {
+    let formatted = msg;
+    if (player && dinoName) {
+      const color = this.getPlayerColor(player);
+      formatted = msg.replace(dinoName, `<span style="color:${color};font-weight:bold;">${dinoName}</span>`);
+    }
+    this.log.unshift(`[T${this.turn}] ${formatted}`);
+    if (this.log.length > 60) this.log.pop();
+  }
+   getMoves(player){
+    let d=player.active; if(d.dead) return[];
+    let moves=[{id:'strike',name:'Strike',type:'basic',desc:'Basic ATK'}];
+    
+    // -- Role‑based universal move (placed after Strike) --
+    const roleMap = {
+      'Ambush':    {id:'role_Ambush', name:'Dash', cd:2, desc:'+7.5% SPD 2t',      fx:[{t:'tempBuff',s:'spd',p:7.5,dur:2}]},
+      'Pursuit':   {id:'role_Pursuit', name:'Stalk', cd:2, desc:'+5% SPD & ATK 2t', fx:[{t:'tempBuff',s:'spd',p:5,dur:2},{t:'tempBuff',s:'atk',p:5,dur:2}]},
+      'Attacker':  {id:'role_Attacker', name:'Focus', cd:2, desc:'+7.5% ATK 2t',     fx:[{t:'tempBuff',s:'atk',p:7.5,dur:2}]},
+      'Resilient': {id:'role_Resilient', name:'Endure', cd:2, desc:'+6% DEF 2t, heal 10% HP', fx:[{t:'tempBuff',s:'def',p:6,dur:2},{t:'healPct',p:10}]},
+      'Tank':      {id:'role_Tank', name:'Fortify', cd:2, desc:'+10% DEF 2t',        fx:[{t:'tempBuff',s:'def',p:10,dur:2}]},
+      'Brawler':   {id:'role_Brawler', name:'Adapt', cd:2, desc:'+5% to lowest stat', fx:[]}  // handled separately
+    };
+    let rm = roleMap[d.r];
+    if (rm) {
+      let cdRem = d.cooldowns[rm.name] || 0;
+      moves.push({id:rm.id, name:rm.name, type:'role', cdLeft:cdRem, cd:rm.cd, fx:rm.fx, desc:rm.desc});
+    }
+
+    let opp=player===this.p1?this.p2:this.p1;
+    let swapOk=true;
+    if(opp.active.preventSwap)swapOk=false;
+    else if(opp.active.preventSwapUnlessFaster)swapOk=player.active.currentSpd>opp.active.currentSpd;
+    if(player.backup.length>0) moves.push({id:'swap',name:'Swap',type:'swap',desc:'Swap Active',blocked:!swapOk});
+    d.activeAbilities.forEach(ab=>{
+      let cd=d.cooldowns[ab.n]||0;
+      moves.push({id:'abil_'+ab.n,name:ab.n,type:'ability',cdLeft:cd,cd:ab.cd,fx:ab.fx,desc:ab.desc||''});
+    });
+    return moves;
+  }
+  selectMove(player,moveId){
+    if(player.active.dead)return;
+    if(this.phase==='selectP1'&&player!==this.p1)return;
+    if(this.phase==='selectP2'&&player!==this.p2)return;
+    if(player.locked)return;
+    let moves=this.getMoves(player);
+    let move=moves.find(m=>m.id===moveId);
+    if(!move||move.cdLeft>0||move.blocked)return;
+    if(move.id==='swap'){player.selectedMove=move;player.swapPending=true;player.swapTargetIdx=null;}
+    else{player.selectedMove=move;player.swapPending=false;player.swapTargetIdx=null;}
+    updateUI();
+  }
+  selectSwapTarget(player,idx){
+    if(player.active.dead||this.phase==='selectP1'&&player!==this.p1||this.phase==='selectP2'&&player!==this.p2)return;
+    if(idx>=player.backup.length)return;
+    player.swapTargetIdx=idx;
+    player.selectedMove={id:'swap',name:'Swap',type:'swap',targetIndex:idx};
+    player.swapPending=false;
+    updateUI();
+  }
+  lockIn(player){
+    if(player.active.dead||this.phase==='selectP1'&&player!==this.p1||this.phase==='selectP2'&&player!==this.p2)return;
+    if(!player.selectedMove||player.swapPending)return;
+    player.locked=true;player.swapTargetIdx=null;
+    if(this.phase==='selectP1'){this.phase='selectP2';updateUI();}
+    else if(this.phase==='selectP2'){this.phase='resolve';this.buildTimeline();updateUI();}
+  }
+  buildTimeline(){
+    let o1=this.p1,o2=this.p2,m1=o1.selectedMove,m2=o2.selectedMove;
+    this.timeline=[];this.timelineIdx=0;this.cooldownsToSet={};
+    this.needsReplacement=null;this.gameOver=false;this.winner=null;
+    const add=(d,a)=>this.timeline.push({desc:d,action:a});
+    add(`${o1.name}(${o1.active.n}):${m1.name} | ${o2.name}(${o2.active.n}):${m2.name}`,()=>[]);
+    if(m1.id==='swap'&&m2.id==='swap'){
+      let coin=Math.random()<0.5?o1:o2;
+      add(`Both swap. Coin: ${coin.name} first.`,()=>{
+        let log=[];
+        if(coin===o1){log.push(...this.doSwap(o1,m1.targetIndex));log.push(...this.triggerSwapIn(o1));log.push(...this.doSwap(o2,m2.targetIndex));log.push(...this.triggerSwapIn(o2));}
+        else{log.push(...this.doSwap(o2,m2.targetIndex));log.push(...this.triggerSwapIn(o2));log.push(...this.doSwap(o1,m1.targetIndex));log.push(...this.triggerSwapIn(o1));}
+        return log;
+      });
+      add('End of turn.',()=>{this.endTurn();return[];});
+      return;
+    }
+    if(m1.id==='swap'){add(`${o1.active.n} swaps.`,()=>{let l=this.doSwap(o1,m1.targetIndex);l.push(...this.triggerSwapIn(o1));return l;});this.addMoveSteps(o2,m2,o1);add('End of turn.',()=>{this.endTurn();return[];});return;}
+    if(m2.id==='swap'){add(`${o2.active.n} swaps.`,()=>{let l=this.doSwap(o2,m2.targetIndex);l.push(...this.triggerSwapIn(o2));return l;});this.addMoveSteps(o1,m1,o2);add('End of turn.',()=>{this.endTurn();return[];});return;}
+    if(o1.active.currentSpd>o2.active.currentSpd){
+      add(`${o1.active.n} faster`,()=>[]);
+      this.addMoveSteps(o1,m1,o2);this.addMoveSteps(o2,m2,o1);
+    }else if(o2.active.currentSpd>o1.active.currentSpd){
+      add(`${o2.active.n} faster`,()=>[]);
+      this.addMoveSteps(o2,m2,o1);this.addMoveSteps(o1,m1,o2);
+    }else{
+      let first=Math.random()<0.5?o1:o2,second=first===o1?o2:o1;
+      add(`Speed tie! Coin: ${first.name} first.`,()=>[]);
+      this.addMoveSteps(first,first.selectedMove,first===o1?o2:o1);
+      this.addMoveSteps(second,second.selectedMove,second===o1?o2:o1);
+    }
+    add('End of turn.',()=>{this.endTurn();return[];});
+  }
+  triggerSwapIn(player){
+    let d=player.active;if(!d||d.dead)return[];
+    let log=[];
+    if(d.revengeMult&&player.revengeFlag){d.revengeActive=true;player.revengeFlag=false;log.push(`${d.n} revenge ready!`);}
+    if(d.vengeance&&player.revengeFlag){ d.vengeanceActive = true; player.revengeFlag = false; log.push(`${d.n} vengeance ready!`); }
+    if(d.swapInAtk){
+      let opp=player===this.p1?this.p2.active:this.p1.active;
+      let raw=d.currentAtk*d.swapInAtk.m;
+      let res=opp.takeDamage(raw,d.swapInAtk.by||0);
+      log.push(`${d.n} swap-atk: ${res.dmg} dmg.`);
+      this.logMsg(`${d.n} swapped in and dealt ${res.dmg} damage!`, player, d.n);
+      if(d.swapInAtk.dodge){ d.dodgeCh=d.swapInAtk.dodge.ch; d.dodgeDp=d.swapInAtk.dodge.dp; d.dodgeDur=1; log.push(`gains dodge.`); }
+      if(opp.dead){
+        log.push(`${opp.n} KO'd!`);
+        if(player===this.p1?this.p2.backup.length>0:this.p1.backup.length>0){
+          this.needsReplacement=player===this.p1?this.p2:this.p1;
+          (player===this.p1?this.p2:this.p1).revengeFlag=true;
+        }else{
+          this.gameOver=true;this.winner=player.name;
+          log.push(`${(player===this.p1?this.p2:this.p1).name} wiped! ${player.name} wins!`);
+        }
+      }
+    }
+    return log;
+  }
+    addMoveSteps(player,move,opponent){
+    let d=player.active;
+    this.timeline.push({desc:`${player.name}(${d.n}): ${move.name}`,action:()=>{
+      if(player.active.dead)return[`${d.n} KO'd; cancelled.`];
+      let log=[];       
+let healTotal = 0;
+      if(player.active.stunned){
+        log.push(`${d.n} stunned, cannot act!`);
+        return log;
+      }
+      if(opponent.active.dead&&move.id!=='pass')return[`${opponent.active.n} KO'd; cancelled.`];
+      opponent.active.lastHp=opponent.active.hp;player.active.lastHp=player.active.hp;
+      if(move.id==='pass'){}
+      else if(move.type==='role'){
+        // Role universal move
+        if(move.id==='role_Brawler'){
+          // Adapt: find lowest base stat and buff it 5%
+          let stats = {spd:d.spd, atk:d.atk, def:d.def};
+          let minKey = Object.keys(stats).reduce((a,b) => stats[a] <= stats[b] ? a : b);
+          let buffObj = {t:'tempBuff', s:minKey, p:5, dur:2};
+          d.tempBuffs.push({stat:minKey, pct:5, dur:2});
+          if(minKey==='atk') d.atkMod+=5;
+          else if(minKey==='def') d.defMod+=5;
+          else d.spdMod+=5;
+          log.push(`Adapt: +5% ${minKey.toUpperCase()} 2t.`);
+        } else {
+          // Other roles use predefined fx
+          let fxArr = move.fx||[];
+          for(let fx of fxArr){
+            if(fx.t==='tempBuff'){
+              d.tempBuffs.push({stat:fx.s, pct:fx.p, dur:fx.dur});
+              if(fx.s==='atk') d.atkMod+=fx.p;
+              else if(fx.s==='def') d.defMod+=fx.p;
+              else d.spdMod+=fx.p;
+              log.push(`+${fx.p}% ${fx.s.toUpperCase()} 2t.`);
+            } else if(fx.t==='healPct'){
+              d.heal(Math.round(d.maxHp*fx.p/100));
+              log.push(`Healed ${fx.p}%.`);
+healTotal += Math.round(d.maxHp*fx.p/100);
+            }
+          }
+        }
+        if(move.cd){
+          if(!this.cooldownsToSet[player.name]) this.cooldownsToSet[player.name]=[];
+          this.cooldownsToSet[player.name].push({dino:d, moveName:move.name, cd:move.cd});
+        }
+      }
+      else if(move.type==='ability'){
+        let fxArr = move.fx||[];
+        let processed = [];
+        for(let i=0;i<fxArr.length;i++){
+          let cur = fxArr[i];
+          if(cur.t==='critCombined'){
+            let roll = Math.random()*100 < cur.critCh;
+            let m = roll ? (cur.critM || cur.baseM*1.5) : cur.baseM;
+            let by = roll ? (cur.critBypass!==undefined ? cur.critBypass : (cur.by||0)) : (cur.by||0);
+            processed.push({t:'strike',m,by});
+            if(roll) log.push(`CRIT!`);
+            continue;
+          }
+          if(cur.t==='revengeCritCombined'){
+            let isRevenge = player.revengeFlag;
+            let m = isRevenge ? cur.revengeM : cur.baseM;
+            let by = isRevenge ? cur.revengeBy : cur.by;
+            let roll = Math.random()*100 < (cur.critCh||0);
+            if(roll) by = cur.critBypass||100;
+            processed.push({t:'strike',m,by});
+            if(isRevenge) log.push(`Revenge!`);
+            if(roll) log.push(`CRIT bypass!`);
+            continue;
+          }
+          if(cur.t==='critRoll'||cur.t==='critBypass'){
+            continue;
+          }
+          processed.push(cur);
+        }
+        for(let fx of processed){
+          if(fx.t==='strike'){
+            let raw=d.currentAtk*(fx.m||1);
+            if(d.vengeanceActive){ raw *= 2; d.vengeanceActive = false; log.push(`Vengeance! 2x damage.`); }
+            if(d.bypassChance&&Math.random()*100<d.bypassChance.ch) fx.by=d.bypassChance.bp;
+            let by=fx.by||0;
+            let savedNoCounter = d.noCounter;
+            if(fx.noCounter) d.noCounter=true;
+            if(d.allBleed && !opponent.active.immuneBleed){
+              opponent.active.bleeds.push({pct:d.allBleed.pct, dur:d.allBleed.dur, flat:false});
+              log.push(`Serrated Teeth: bleed added.`);
+            }
+            let res=opponent.active.takeDamage(raw,by,d);
+            d.noCounter = savedNoCounter;
+            log.push(`ATK ${raw} → ${res.dmg} dmg${res.dodged?' DODGED!':''}.`);
+            if(!d.preventPassiveTrigger && !d.noCounter){
+              if(!opponent.active.dead&&opponent.active.counterPercent>0){
+                let cdmg=Math.round(res.dmg*opponent.active.counterPercent);
+                if(cdmg>0){d.takeDamage(cdmg,opponent.active.counterBypass?100:0);log.push(`${opponent.active.n} counters ${cdmg}!`);}
+              }
+              if(!opponent.active.dead&&opponent.active.reflectPercent>0){
+                let rdmg=Math.round(res.dmg*opponent.active.reflectPercent);
+                if(rdmg>0){d.takeDamage(rdmg,100);log.push(`${opponent.active.n} reflects ${rdmg}!`);}
+              }
+              if(!opponent.active.dead&&opponent.active.counterStrike){
+                let cdmg=Math.round(opponent.active.currentAtk*opponent.active.counterStrike.m);
+                if(cdmg>0){d.takeDamage(cdmg,0);log.push(`${opponent.active.n} counters ${cdmg}!`);}
+                if(opponent.active.counterStrike.slow){d.spdMod-=opponent.active.counterStrike.slow;log.push(`${d.n} SPD -${opponent.active.counterStrike.slow}% from counter.`);}
+              }
+              if(!opponent.active.dead&&opponent.active.heavyCounter){
+                let baseDefMe = d.def; let baseDefOpp = opponent.active.def;
+                let hpDmg = baseDefOpp > baseDefMe ? Math.round(opponent.active.maxHp*0.2) : Math.round(opponent.active.maxHp*0.1);
+                d.takeDamage(hpDmg, 100);
+                log.push(`${opponent.active.n} heavy counters ${hpDmg} dmg!`);
+              }
+            }
+            if(fx.lastDmg !== undefined) fx.lastDmg = res.dmg;
+                  } else if(fx.t==='heal'){
+          d.heal(fx.v);
+          log.push(`Healed ${fx.v}.`);
+          healTotal += fx.v;
+        } else if(fx.t==='fullHeal'){
+          let oldHP = d.hp;
+          d.hp = d.maxHpEff;
+          log.push(`Fully healed!`);
+          healTotal += d.hp - oldHP;
+        }
+else if(fx.t==='healPct'){
+          d.heal(Math.round(d.maxHp*fx.p/100));
+          log.push(`Healed ${fx.p}%.`);
+          healTotal += Math.round(d.maxHp*fx.p/100);
+        } else if(fx.t==='healBackup'){
+          let p = player;
+          p.backup.forEach(bd=>{
+            if(!bd.dead){
+              let h=Math.round(bd.maxHp*fx.pct/100);
+              bd.heal(h);
+              log.push(`${bd.n} healed ${h} HP.`);
+            }
+          });
+        } else if(fx.t==='debuffRoll'){
+            let t=fx.tg==='opp'?opponent.active:d;
+            let val=Math.random()*100<fx.ch?fx.big:fx.p;
+            if(t.largePlates) val = Math.round(val/2);
+            if(fx.s==='atk')t.atkMod+=val; else if(fx.s==='def')t.defMod+=val; else t.spdMod+=val;
+            log.push(`${t.n} ${val}% ${fx.s.toUpperCase()}.`);
+          } else if(fx.t==='teamBuff'){
+            if(fx.target==='ally'){
+              let p = player;
+              if(fx.stat==='atk') p.backup.forEach(bd=>{ if(!bd.dead) bd.atkMod+=fx.pct; });
+              log.push(`Allied backups gain ${fx.pct}% ${fx.stat.toUpperCase()}.`);
+            } else if(fx.target==='enemy'){
+              let p = opponent;
+              p.active.atkMod+=fx.pct;
+              p.backup.forEach(bd=>{ if(!bd.dead) bd.atkMod+=fx.pct; });
+              log.push(`Enemy team suffers ${fx.pct}% ATK reduction.`);
+            } else {
+              if(fx.stat==='atk') d.atkMod+=fx.pct;
+              log.push(`Self +${fx.pct}% ATK.`);
+            }
+          } else if(fx.t==='venom'){ opponent.active.venom=true; log.push(`${opponent.active.n} venomed.`); }
+          else if(fx.t==='bleed'){
+            if(!opponent.active.immuneBleed){
+              opponent.active.bleeds.push({pct:fx.pct||0,dur:fx.dur||2,flat:false});
+              log.push(`Bleed ${fx.pct}% x${fx.dur}.`);
+            }
+          } else if(fx.t==='bleedFlat'){
+            if(!opponent.active.immuneBleed){
+              opponent.active.bleeds.push({pct:0,dmg:fx.dmg,dur:fx.dur,flat:true});
+              log.push(`Bleed ${fx.dmg}x${fx.dur}.`);
+            }
+          } else if(fx.t==='bleedWithWound'){
+            if(!opponent.active.immuneBleed){
+              opponent.active.bleeds.push({pct:fx.pct,dur:fx.dur,woundOnTick:true});
+              log.push(`Bleed ${fx.pct}% x${fx.dur} (wounds on tick).`);
+            }
+          } else if(fx.t==='wound'){
+            let wd=fx.same?Math.round(d.currentAtk*(move.fx?.[0]?.m||1)):(fx.v||0);
+            opponent.active.wound+=wd; log.push(`Wound -${wd} HP.`);
+          } else if(fx.t==='woundByLastDmg'){
+            let wd = fx.lastDmg || 0;
+            opponent.active.wound += wd; log.push(`Wound -${wd} HP (based on damage dealt).`);
+          } else if(fx.t==='woundMaxHp'){
+            let wd = Math.round(opponent.active.maxHp * fx.pct/100);
+            opponent.active.wound += wd; log.push(`Wound -${wd} HP (${fx.pct}% max HP).`);
+          } else if(fx.t==='dodgeSelf'){ d.dodgeCh=fx.ch; d.dodgeDp=fx.dp; d.dodgeDur=fx.dur; log.push(`Dodge gained.`); }
+          else if(fx.t==='stun'){
+            if(!opponent.active.immuneStun&&Math.random()*100<(fx.ch||50)){ opponent.active.stunned=true; log.push(`${opponent.active.n} stunned!`); }
+          } else if(fx.t==='coin'){
+            let o=Math.random()<0.5?0:1; log.push(`Coin: ${o===0?'heads':'tails'}.`);
+          } else if(fx.t==='nullify'){
+            d.atkMod=0; d.defMod=0; d.spdMod=0; d.bleeds=[]; d.venom=false; d.stunned=false;
+            opponent.active.atkMod=0; opponent.active.defMod=0; opponent.active.spdMod=0; opponent.active.bleeds=[]; opponent.active.venom=false;
+            log.push(`All effects nullified.`);
+          } else if(fx.t==='cleanse'){
+            d.atkMod=Math.max(0,d.atkMod); d.defMod=Math.max(0,d.defMod); d.spdMod=Math.max(0,d.spdMod);
+            d.bleeds=[]; d.venom=false; d.stunned=false; log.push(`${d.n} cleansed.`);
+                    } else if(fx.t==='swapSelf'){
+            if (this.aiMode && player === this.p2) {
+              // AI automatically picks the best backup
+              this.aiDoSwapSelf(player);
+              log.push(`${player.name} swapped via ability.`);
+            } else {
+              if (!this.swapChoicePlayer) {
+                this.swapChoicePlayer = player;
+              }
+              log.push(`${player.name} will choose a swap target.`);
+            }
+          }
+          else if(fx.t==='forceSwap'){
+            let ch = fx.ch||100;
+            if(Math.random()*100 < ch){
+              let opp = opponent;
+              let oldPrevent = opp.active.preventSwap;
+              opp.active.preventSwap = false;
+              let oldUnless = opp.active.preventSwapUnlessFaster;
+              opp.active.preventSwapUnlessFaster = false;
+              log.push(...this.doSwap(opponent, 0));
+              opp.active.preventSwap = oldPrevent;
+              opp.active.preventSwapUnlessFaster = oldUnless;
+              log.push(`${opponent.active.n} forced to swap!`);
+            } else {
+              log.push(`Force swap failed.`);
+            }
+          }
+          else if(fx.t==='vulnSelf'){ log.push(`Vulnerable self.`); }
+          else if(fx.t==='knockback'){
+            let raw=d.currentAtk*1.2; let res=opponent.active.takeDamage(raw,0); log.push(`Knockback: ${res.dmg} dmg.`);
+          } else if(fx.t==='convert'){
+            let c=Math.min(d.totalDmgTaken,fx.max); d.spdMod+=Math.round(c/4); d.atkMod+=Math.round(c/4);
+            log.push(`Converted dmg→stats.`);
+          } else if(fx.t==='flatDefDown'){ let v = d.largePlates ? Math.round(fx.v/2) : fx.v; opponent.active.defMod-=v; log.push(`DEF -${v}.`); }
+          else if(fx.t==='selfDefDown'){ let v = d.largePlates ? Math.round(fx.v/2) : fx.v; d.defMod-=v; log.push(`Self DEF -${v}.`); }
+          else if(fx.t==='condBuff'){
+            let val=(fx.cond==='spdHigh'&&opponent.active.currentSpd>fx.th)?fx.p:(fx.else||0);
+            if(fx.s==='def') d.defMod+=val; log.push(`+${val}% ${fx.s.toUpperCase()}.`);
+          } else if(fx.t==='buffNextAtk'){ d.buffNextAtk=fx.mult; log.push(`Next ATK x${fx.mult}.`); }
+          else if(fx.t==='regen'){ d.regenPct=fx.pct; d.regenDur=fx.dur; log.push(`Regen ${fx.pct}% x${fx.dur}.`); }
+          else if(fx.t==='regenFlat'){ d.regenFlat=fx.amt; d.regenFlatDur=fx.dur; log.push(`Regen ${fx.amt} HP x${fx.dur}.`); }
+          else if(fx.t==='preventSwapSelf'){ opponent.active.preventSwap=true; log.push(`${opponent.active.n} can't swap.`); }
+          else if(fx.t==='preventSwapDur'){ opponent.active.preventSwap=true; setTimeout(()=>opponent.active.preventSwap=false,2000); log.push(`${opponent.active.n} swap blocked 2t.`); }
+          else if(fx.t==='revengeStrike'){
+            let m=player.revengeFlag?fx.m:fx.m2; let by=fx.by||0;
+            let raw=d.currentAtk*m; let res=opponent.active.takeDamage(raw,by,d);
+            log.push(`Revenge Rampage: ${res.dmg} dmg.`);
+          }
+        }
+        if(move.cd){if(!this.cooldownsToSet[player.name])this.cooldownsToSet[player.name]=[];this.cooldownsToSet[player.name].push({dino:d,moveName:move.name,cd:move.cd});}
+      }else if(move.type==='basic'&&move.id==='strike'){
+        let raw=d.currentAtk;
+        if(d.buffNextAtk>0){raw*=d.buffNextAtk;d.buffNextAtk=0;log.push(`Buffered ATK!`);}
+        if(d.revengeActive){raw*=(1+d.revengeMult);d.revengeActive=false;log.push(`Revenge!`);}
+        if(d.vengeanceActive){raw*=2;d.vengeanceActive=false;log.push(`Vengeance!`);}
+        if(d.stunStrike){let ch=opponent.active.currentDef<600?50:25;if(Math.random()*100<ch){opponent.active.stunned=true;log.push(`Stun strike!`);}}
+        let defDino=opponent.active;
+        if(defDino.dodgeIfFaster&&d.currentSpd<defDino.currentSpd){defDino.dodgeCh=defDino.dodgeIfFaster.ch;defDino.dodgeDp=defDino.dodgeIfFaster.dp;}
+        if(d.allBleed && !defDino.immuneBleed){
+          defDino.bleeds.push({pct:d.allBleed.pct, dur:d.allBleed.dur, flat:false});
+          log.push(`Serrated Teeth: bleed added.`);
+        }
+        let res=defDino.takeDamage(raw,0,d);
+        log.push(`ATK ${raw} → ${res.dmg} dmg${res.dodged?' DODGED!':''}.`);
+        if(!d.preventPassiveTrigger && !d.noCounter){
+          if(!defDino.dead&&defDino.counterPercent>0){
+            let cdmg=Math.round(res.dmg*defDino.counterPercent);
+            if(cdmg>0){d.takeDamage(cdmg,defDino.counterBypass?100:0);log.push(`${defDino.n} counters ${cdmg}!`);}
+          }
+          if(!defDino.dead&&defDino.reflectPercent>0){
+            let rdmg=Math.round(res.dmg*defDino.reflectPercent);
+            if(rdmg>0){d.takeDamage(rdmg,100);log.push(`${defDino.n} reflects ${rdmg}!`);}
+          }
+          if(!defDino.dead&&defDino.flatReflect>0){
+            d.takeDamage(defDino.flatReflect,100);log.push(`${defDino.n} spikes reflect ${defDino.flatReflect}!`);
+          }
+          if(defDino.slowOnHit&&!d.dead){d.spdMod-=15;log.push(`${d.n} SPD -15% from hit.`);}
+          if(defDino.aggressiveness&&!defDino.dead){defDino.atkMod+=10;log.push(`${defDino.n} +10% ATK!`);}
+          if(defDino.ferociousness&&!defDino.dead){defDino.atkMod+=10;log.push(`${defDino.n} +10% ATK!`);}
+          if(defDino.counterStrike){
+            let cdmg2=Math.round(defDino.currentAtk*defDino.counterStrike.m);
+            if(cdmg2>0){d.takeDamage(cdmg2,0);log.push(`${defDino.n} counters ${cdmg2}!`);}
+            if(defDino.counterStrike.slow){d.spdMod-=defDino.counterStrike.slow;log.push(`${d.n} SPD -${defDino.counterStrike.slow}% from counter.`);}
+          }
+          if(defDino.heavyCounter){
+            let baseDefMe = d.def; let baseDefOpp = defDino.def;
+            let hpDmg = baseDefOpp > baseDefMe ? Math.round(defDino.maxHp*0.2) : Math.round(defDino.maxHp*0.1);
+            d.takeDamage(hpDmg, 100);
+            log.push(`${defDino.n} heavy counters ${hpDmg} dmg!`);
+          }
+        }
+      }
+      if(opponent.active.dead){log.push(`${opponent.active.n} KO'd!`);
+                        {
+          const oppColor = this.getPlayerColor(opponent);
+          const plyColor = this.getPlayerColor(player);
+          const msg = `<span style="color:${oppColor};font-weight:bold;">${opponent.active.n}</span> KO'd by <span style="color:${plyColor};font-weight:bold;">${player.active.n}</span>`;
+          this.logMsg(msg);
+        }
+        if(player.active.devourer||player.active.devourerHeal){
+          let healAmt=player.active.devourer?Math.round(player.active.maxHp*player.active.devourer/100):Math.round(player.active.totalDmgTaken*player.active.devourerHeal/100);
+          player.active.heal(healAmt); log.push(`${player.active.n} devours, heals ${healAmt}.`);
+        }
+        if(opponent.backup.length>0){this.needsReplacement=opponent;opponent.revengeFlag=true;}
+        else if(opponent.lockdown){opponent.active=opponent.lockdown;opponent.lockdown=null;log.push(`${opponent.name} retrieves ${opponent.active.n}.`);}
+        else{this.gameOver=true;this.winner=player.name;log.push(`${opponent.name} wiped! ${player.name} wins!`);}
+      }
+      if(player.active.dead){log.push(`${player.active.n} KO'd!`);
+                        {
+          const oppColor = this.getPlayerColor(opponent);
+          const plyColor = this.getPlayerColor(player);
+          const msg = `<span style="color:${plyColor};font-weight:bold;">${player.active.n}</span> KO'd by <span style="color:${oppColor};font-weight:bold;">${opponent.active.n}</span>`;
+          this.logMsg(msg);
+        }
+        if(player.backup.length>0){this.needsReplacement=player;player.revengeFlag=true;}
+        else if(player.lockdown){player.active=player.lockdown;player.lockdown=null;log.push(`${player.name} retrieves ${player.active.n}.`);}
+        else{this.gameOver=true;this.winner=opponent.name;log.push(`${player.name} wiped! ${opponent.name} wins!`);}
+      }
+      if (healTotal > 0) { d.lastHeal = healTotal; }
+      return log;
+    }});
+  }
+    doSwap(player,targetIndex){
+    if(player.backup.length===0)return[`${player.name} can't swap.`];
+    let idx=targetIndex??0;
+    let nd=player.backup.splice(idx,1)[0];
+    if(player.lockdown)player.backup.push(player.lockdown);
+    player.lockdown=player.active;player.active=nd;
+        this.logMsg(`${player.name} swapped to ${player.active.n}.`, player, player.active.n);
+    return[`${player.name}→${player.active.n}.`];
+  }
+  endTurn(){
+    [this.p1.active,this.p2.active].forEach(d=>{if(!d.dead)for(let k in d.cooldowns)if(d.cooldowns[k]>0)d.cooldowns[k]--;});
+    for(let n in this.cooldownsToSet){let p=n===this.p1.name?this.p1:this.p2;this.cooldownsToSet[n].forEach(e=>e.dino.cooldowns[e.moveName]=e.cd);}
+    let bleedLogs=[];
+    [this.p1, this.p2].forEach(player => {
+      player.backup.forEach(d => {
+        if(!d.dead && d.desertScavenger){
+          let h = Math.round(d.maxHp * d.desertScavenger / 100);
+          d.heal(h);
+          bleedLogs.push(`${d.n} (backup) scavenges ${h} HP.`);
+        }
+      });
+    });
+    [this.p1, this.p2].forEach(player => {
+      let d = player.active;
+      if(d && !d.dead && d.intimidator){
+        let opp = player===this.p1?this.p2.active:this.p1.active;
+        if(opp && !opp.dead){
+          d.intimidator.stacks = Math.min(d.intimidator.stacks+10, d.intimidator.max);
+          opp.atkMod -= 10;
+          bleedLogs.push(`${opp.n} ATK -10% from Intimidator (total -${d.intimidator.stacks}%).`);
+        }
+      }
+    });
+    [this.p1,this.p2].forEach(player=>{
+      let d=player.active;
+      if(d&&!d.dead){
+        let logs=d.endTurnEffects();
+        if(d.dead){
+          if(player.backup.length>0){this.needsReplacement=player;player.revengeFlag=true;}
+          else if(player.lockdown){player.active=player.lockdown;player.lockdown=null;bleedLogs.push(`${player.name} retrieves ${player.active.n}.`);}
+          else{let opp=player===this.p1?this.p2:this.p1;this.gameOver=true;this.winner=opp.name;}
+        }
+        bleedLogs.push(...logs);
+      }
+    });
+    if(bleedLogs.length>0){this.timeline.push({desc:"End of turn effects:",action:()=>bleedLogs});}
+    this.p1.selectedMove=null;this.p2.selectedMove=null;this.p1.locked=false;this.p2.locked=false;
+    this.p1.swapPending=false;this.p2.swapPending=false;this.p1.swapTargetIdx=null;this.p2.swapTargetIdx=null;
+    this.turn++;
+  }
+  aiScoreBackup(backup) {
+    // Returns a score for a backup dinosaur (higher = better)
+    let score = 0;
+    const hpPct = backup.hp / backup.maxHpEff;
+    score += hpPct * 100;                // 0–100 based on HP%
+    if (backup.r === 'Ambush') score += 25;
+    else if (backup.r === 'Pursuit') score += 15;
+    else if (backup.r === 'Attacker') score += 5;
+    return score;
+  }
+
+  aiDoSwapSelf(player) {
+    if (player.backup.length === 0) return;   // nothing to swap to
+    let bestIdx = 0, bestScore = -1;
+    player.backup.forEach((dino, i) => {
+      let s = this.aiScoreBackup(dino);
+      s += Math.floor(Math.random() * 10);    // tiny randomness
+      if (s > bestScore) { bestScore = s; bestIdx = i; }
+    });
+    let nd = player.backup.splice(bestIdx, 1)[0];
+    player.lockdown = player.active;
+    player.active = nd;
+    this.logMsg(`${player.name} swapped to ${player.active.n} via ability.`, player, player.active.n);
+  }
+}
+
+// ==================== UI & GAME FLOW ====================
+let battle=null,setup={p1Deck:[],p2Deck:[],p1Active:null,p2Active:null,p1Name:'P1',p2Name:'P2',rarity:'Primary',aiMode:false,layout:'computer'};
+// --- Title / Mode ---
+function showModeScreen(){
+  document.getElementById('title-screen').style.display='none';
+  document.getElementById('mode-screen').style.display='block';
+}
+function startLocalGame(){
+  setup.aiMode=false;
+  document.getElementById('mode-screen').style.display='none';
+  document.getElementById('name-input-screen').style.display='block';
+  document.getElementById('p1-name-input').value='';
+  document.getElementById('p2-name-input').value='';
+}
+function startAIGame(){
+  setup.aiMode=true;
+  setup.p2Name='AI';
+  document.getElementById('mode-screen').style.display='none';
+  document.getElementById('ai-name-screen').style.display='block';
+  document.getElementById('ai-p1-name-input').value='';
+}
+
+// Name confirm
+document.getElementById('confirm-names-btn')?.addEventListener('click', confirmNames);
+document.getElementById('skip-names-btn')?.addEventListener('click', ()=>{setup.p1Name='P1';setup.p2Name='P2';document.getElementById('name-input-screen').style.display='none';showRarityScreen();});
+function confirmNames(){
+  let n1=document.getElementById('p1-name-input').value.trim();
+  let n2=document.getElementById('p2-name-input').value.trim();
+  if(n1)setup.p1Name=n1; if(n2)setup.p2Name=n2;
+  document.getElementById('name-input-screen').style.display='none';
+  showRarityScreen();
+}
+document.getElementById('ai-confirm-name-btn')?.addEventListener('click', ()=>{
+  let n=document.getElementById('ai-p1-name-input').value.trim();
+  if(n)setup.p1Name=n;
+  document.getElementById('ai-name-screen').style.display='none';
+  showRarityScreen();
+});
+
+function showRarityScreen(){
+  document.getElementById('rarity-screen').style.display='block';
+  let tiers=['Primary','Secondary','Tertiary','Quaternary','Legendary'];
+  let colors=['#c0392b','#e67e22','#16a085','#2980b9','#8e44ad'];
+  let counts=tiers.map(t=>DB.filter(d=>d.tier===t).length);
+  document.getElementById('rarity-options').innerHTML=tiers.map((t,i)=>`<button class="rarity-btn" style="background:${colors[i]};color:#fff" onclick="selectRarity('${t}')">${t}<br><small>${counts[i]} species</small></button>`).join(' ') + `<button class="btn" onclick="selectRandomRarity()" style="margin-top:8px;">🎲 Random</button>`;
+}
+function selectRarity(tier){
+  setup.rarity=tier;
+  document.getElementById('rarity-screen').style.display='none';
+  document.getElementById('setup-screen').style.display='block';
+  document.getElementById('p1-label').textContent=setup.p1Name;
+  document.getElementById('p2-label').textContent=setup.p2Name;
+  renderSetup();
+}
+function selectRandomRarity(){
+  let tiers=['Primary','Secondary','Tertiary','Quaternary','Legendary'];
+  selectRarity(tiers[Math.floor(Math.random()*tiers.length)]);
+}
+function renderSetup(){
+  let filtered=DB.filter(d=>d.tier===setup.rarity);
+  let p1h=filtered.map(d=>{let mv=d.active?d.active.map(a=>a.n).join(', '):'Strike';return`<label><input type="checkbox" value="${d.n}" class="p1-check"><span class="${rarityClass(d.tier)}">${d.n}</span> ${roleEmoji(d.r)} [${mv}]</label>`;}).join('');
+  let p2h=filtered.map(d=>{let mv=d.active?d.active.map(a=>a.n).join(', '):'Strike';return`<label><input type="checkbox" value="${d.n}" class="p2-check"><span class="${rarityClass(d.tier)}">${d.n}</span> ${roleEmoji(d.r)} [${mv}]</label>`;}).join('');
+  document.getElementById('p1-grid').innerHTML=p1h;document.getElementById('p2-grid').innerHTML=p2h;
+  document.querySelectorAll('.p1-check,.p2-check').forEach(cb=>cb.addEventListener('change',updateCounts));
+  if(setup.aiMode) setTimeout(()=>randomizePlayer(2), 100);
+}
+function randomizePlayer(playerNum){
+  let prefix=playerNum===1?'p1':'p2';
+  let checks=document.querySelectorAll(`.${prefix}-check`);
+  let filtered=DB.filter(d=>d.tier===setup.rarity);
+  let shuffled=[...filtered].sort(()=>Math.random()-0.5).slice(0,6);
+  checks.forEach(cb=>{cb.checked=shuffled.some(d=>d.n===cb.value);});
+  updateCounts();
+}
+function updateCounts(){
+  let p1=document.querySelectorAll('.p1-check:checked').length;
+  let p2=document.querySelectorAll('.p2-check:checked').length;
+  document.getElementById('p1-count').textContent=`${p1}/6`;
+  document.getElementById('p2-count').textContent=`${p2}/6`;
+  document.getElementById('start-btn').disabled=p1!==6||p2!==6;
+}
+function buildDecks(){
+  let filtered=DB.filter(d=>d.tier===setup.rarity);
+  let p1N=[...document.querySelectorAll('.p1-check:checked')].map(cb=>cb.value);
+  let p2N=[...document.querySelectorAll('.p2-check:checked')].map(cb=>cb.value);
+  setup.p1Deck=p1N.map(n=>filtered.find(d=>d.n===n)).sort(()=>Math.random()-0.5).slice(0,4);
+  setup.p2Deck=p2N.map(n=>filtered.find(d=>d.n===n)).sort(()=>Math.random()-0.5).slice(0,4);
+  setup.selectPlayer='P1';showActiveSelect();
+}
+function showActiveSelect(){
+  document.getElementById('setup-screen').style.display='none';
+  document.getElementById('active-select-screen').style.display='block';
+  // If it's the AI's turn to choose active, auto‑select
+  if (setup.aiMode && setup.selectPlayer === 'P2') {
+    autoSelectAI();
+    return;
+  }
+  document.getElementById('active-select-msg').textContent=`${setup.selectPlayer==='P1'?setup.p1Name:setup.p2Name}, choose Active.`;
+  let deck = setup.selectPlayer==='P1'?setup.p1Deck:setup.p2Deck;
+  document.getElementById('active-select-cards').innerHTML = deck.map((d,i)=>
+    `<button class="move-btn" onclick="selectActive(${i})"><span class="${rarityClass(d.tier)}">${d.n}</span> ${roleEmoji(d.r)}</button>`
+  ).join('');
+}
+function autoSelectAI(){
+  let deck = setup.p2Deck;   // AI's pool of 4 dinos
+  let chosenIdx = 0;
+  const rand = Math.random();
+  
+  if (rand < 0.3) {
+    // 30% chance: pick any random dino (could be Tank, Resilient, etc.)
+    chosenIdx = Math.floor(Math.random() * deck.length);
+  } else {
+    // Prefer Ambush, then Pursuit
+    let ambushIdx = -1, pursuitIdx = -1;
+    for (let i = 0; i < deck.length; i++) {
+      if (deck[i].r === 'Ambush') { ambushIdx = i; break; }
+    }
+    if (ambushIdx !== -1) {
+      chosenIdx = ambushIdx;
+    } else {
+      for (let i = 0; i < deck.length; i++) {
+        if (deck[i].r === 'Pursuit') { pursuitIdx = i; break; }
+      }
+      if (pursuitIdx !== -1) {
+        chosenIdx = pursuitIdx;
+      } else {
+        // no Ambush/Pursuit – pick randomly
+        chosenIdx = Math.floor(Math.random() * deck.length);
+      }
+    }
+  }
+  
+  // Perform the same steps as a manual selection
+  let c = deck.splice(chosenIdx, 1)[0];
+  setup.p2Active = c;
+  document.getElementById('active-select-screen').style.display = 'none';
+  startBattle();
+}
+function selectActive(idx){
+  let deck=setup.selectPlayer==='P1'?setup.p1Deck:setup.p2Deck;
+  let c=deck.splice(idx,1)[0];
+  if(setup.selectPlayer==='P1'){setup.p1Active=c;setup.selectPlayer='P2';showActiveSelect();}
+  else{setup.p2Active=c;document.getElementById('active-select-screen').style.display='none';startBattle();}
+}
+function startBattle(){
+  battle=new Battle(setup.p1Deck,setup.p2Deck,setup.p1Name,setup.p2Name);
+  battle.aiMode=setup.aiMode;
+  battle.p1.active=new DinoState(setup.p1Active);battle.p2.active=new DinoState(setup.p2Active);
+  [battle.p1,battle.p2].forEach(p=>{ if(p.active.loneSurvivor && p.backup.length===0) p.active.atkMod+=p.active.loneSurvivor; });
+  battle.logMsg('Battle begins!');
+  document.getElementById('battle-screen').style.display='block';
+  if (setup.layout === 'phone') document.getElementById('battle-screen').classList.add('layout-phone');
+  updateUI();
+  if(battle.aiMode && battle.phase==='selectP2') setTimeout(()=>aiDoTurn(), 600);
+}
+function aiDoTurn(){
+  if(!battle||!battle.aiMode||battle.phase!=='selectP2') return;
+  let player = battle.p2;
+  let opponent = battle.p1;
+  let moves = battle.getMoves(player);
+  let valid = moves.filter(m => !m.blocked && m.cdLeft <= 0);
+  
+  if(valid.length === 0){
+    battle.selectMove(player, 'pass');
+  } else {
+    // Pre‑compute opponent's possible Strike damage (worst case immediate threat)
+    let oppStrikeDmg = getPreviewDamage(opponent, {type:'basic',id:'strike'}, player);
+    let aiHP = player.active.hp;
+    let aiMaxHP = player.active.maxHpEff;
+    let hpPct = aiHP / aiMaxHP;
+    let aiSpd = player.active.currentSpd;
+    let oppSpd = opponent.active.currentSpd;
+    let faster = aiSpd > oppSpd;
+    
+    let bestMove = valid[0];
+    let bestScore = -9999;
+    
+    for(let move of valid){
+      let score = 0;
+      
+      // 1. DAMAGE to opponent
+      let dmg = getPreviewDamage(player, move, opponent);
+      score += dmg;
+      
+      // 2. HEALING to self – valued more when low
+      let heal = getPreviewHeal(player, move);
+      if(hpPct < 0.5) {
+        score += heal * 2;
+      } else if(hpPct < 0.8) {
+        score += heal * 1.2;
+      } else {
+        score += heal * 0.3;
+      }
+      
+      // 3. BUFFS (role moves) – small bonus
+      if(move.type === 'role'){
+        score += 30;
+      }
+      
+      // 4. COOLDOWN PREFERENCE – bonus for lower cooldown (ability usable again sooner)
+      if(move.cd !== undefined && move.cd > 0){
+        score += Math.round((5 - move.cd) * 5); // cd 1→+20, cd 2→+15, cd 3→+10, cd 4→+5, cd 5→+0
+      }
+      
+      // 5. BLEED VALUE – bonus if move applies bleed
+      let hasBleed = false;
+      if(move.fx){
+        for(let fx of move.fx){
+          if(fx.t === 'bleed' || fx.t === 'bleedFlat' || fx.t === 'bleedWithWound'){
+            hasBleed = true;
+            break;
+          }
+        }
+      }
+      if(hasBleed && !opponent.active.immuneBleed){
+        score += 20; // bleeding the opponent has future value
+      }
+      
+      // 6. THREAT ASSESSMENT – if opponent can KO us with a single Strike
+      if(oppStrikeDmg >= aiHP){
+        // We are in lethal danger
+        if(move.id === 'swap'){
+          score += 100;   // swapping to a fresh dino is very good
+        } else if(move.id !== 'swap' && move.type !== 'role'){
+          // Attacking while we could die is risky – unless we are faster and can KO them first
+          if(faster){
+            // if we can KO them first, attacking is still good
+            if(dmg >= opponent.active.hp){
+              score += 50;   // finishing blow
+            }
+          } else {
+            // slower: attacking could just get us killed before our move, so penalise
+            score -= 50;
+          }
+        }
+        // Healing is always good when threatened
+        if(heal > 0){
+          score += 30;
+        }
+      }
+      
+      // 7. SPEED‑BASED CAUTION (general)
+      if(!faster && move.type === 'basic' && move.id === 'strike'){
+        // We go second – slightly riskier, small penalty
+        score -= 10;
+      }
+      
+      // 8. AVOID POINTLESS SWAPS
+      if(move.id === 'swap'){
+        if(hpPct > 0.6 && player.active.atkMod >= 0 && player.active.defMod >= 0){
+          score -= 50;
+        }
+        if(hpPct < 0.3){
+          score += 80;
+        }
+      }
+      
+      // 9. RANDOMNESS (0‑15)
+      score += Math.floor(Math.random() * 15);
+      
+      if(score > bestScore){
+        bestScore = score;
+        bestMove = move;
+      }
+    }
+    
+    battle.selectMove(player, bestMove.id);
+    
+    // For swap, pick healthiest backup
+    if(bestMove.id === 'swap' && player.backup.length > 0){
+      let targetIdx = 0;
+      let bestHP = -1;
+      player.backup.forEach((dino, i) => {
+        if(dino.hp > bestHP){
+          bestHP = dino.hp;
+          targetIdx = i;
+        }
+      });
+      battle.selectSwapTarget(player, targetIdx);
+    }
+  }
+  
+  setTimeout(()=>{ if(battle&&battle.phase==='selectP2') battle.lockIn(battle.p2); updateUI(); }, 400);
+}  
+  function getPreviewDamage(player, move, opponent) {
+  if (!move || move.type === 'swap' || move.type === 'pass') return 0;
+  let m = 1, by = 0, found = false;
+  if (move.type === 'basic' && move.id === 'strike') {
+    m = 1; by = 0; found = true;
+  } else if (move.type === 'ability') {
+    const fxArr = move.fx || [];
+    for (let fx of fxArr) {
+      if (fx.t === 'strike') {
+        m = fx.m || 1;
+        by = fx.by || 0;
+        found = true;
+        break;
+      } else if (fx.t === 'critCombined') {
+        m = fx.baseM;
+        by = fx.by || 0;
+        found = true;
+        break;
+      } else if (fx.t === 'revengeCritCombined') {
+        m = player.revengeFlag ? fx.revengeM : fx.baseM;
+        by = player.revengeFlag ? fx.revengeBy : fx.by || 0;
+        found = true;
+        break;
+      }
+    }
+  }
+  if (!found) return 0;
+  const raw = player.active.currentAtk * m;
+  const def = opponent.active.currentDef;
+  const effectiveDef = def * (1 - by / 100);
+  const mult = effectiveDef <= 800 ? 1 - effectiveDef / 1000 : 0.2 - (effectiveDef - 800) / 5000;
+  const dmg = Math.round(raw * mult);
+  return Math.min(dmg, opponent.active.hp);
+}
+function getPreviewHeal(player, move) {
+  if (!move || move.type === 'swap' || move.type === 'pass') return 0;
+  if (move.type === 'basic') return 0; // Strike doesn't heal
+  let total = 0;
+  const fxArr = move.fx || [];
+  for (let fx of fxArr) {
+    if (fx.t === 'heal') total += fx.v;
+    else if (fx.t === 'healPct') total += Math.round(player.active.maxHp * fx.p / 100);
+    else if (fx.t === 'fullHeal') total += player.active.maxHpEff - player.active.hp;
+  }
+  return Math.min(total, player.active.maxHpEff - player.active.hp);
+}
+function updateUI(){  
+checkGameOver();
+  if(!battle)return;
+  // Failsafe: if a player's active is dead but they have backups, force replacement
+  [battle.p1, battle.p2].forEach(player => {
+    if (player.active && player.active.dead && player.backup.length > 0 && !battle.needsReplacement) {
+      battle.needsReplacement = player;
+      player.revengeFlag = true;
+    }
+  });
+  if (battle.needsReplacement && (battle.phase === 'selectP1' || battle.phase === 'selectP2' || battle.phase === 'turnEnded')) {
+    battle.phase = 'replace';
+    showReplaceOverlay(battle.needsReplacement);
+    return;
+  }
+  if(battle.gameOver||battle.phase==='end'){
+    document.getElementById('battle-log').innerHTML=battle.log.map(l=>`<div>${l}</div>`).join('');
+    document.getElementById('turn-resolution').style.display='none';document.getElementById('lock-btn').style.display='none';
+        document.getElementById('victory-msg').textContent=`${battle.winner} wins!`;
+    // fill victory log with the entire battle log, newest first
+    const vicLog = document.getElementById('victory-log');
+    if (vicLog) {
+      vicLog.innerHTML = battle.log.map(l => `<div>${l}</div>`).join('');
+    }
+    document.getElementById('victory-overlay').style.display='flex';return;
+  }
+    let previewP1 = 0, previewP2 = 0, previewHealP1 = 0, previewHealP2 = 0;
+  if (battle.phase === 'selectP1' && battle.p1.selectedMove && !battle.p1.locked && !battle.p1.swapPending) {
+    previewP1 = getPreviewDamage(battle.p1, battle.p1.selectedMove, battle.p2);
+    previewHealP1 = getPreviewHeal(battle.p1, battle.p1.selectedMove);
+  } else if (battle.phase === 'selectP2' && battle.p2.selectedMove && !battle.p2.locked && !battle.p2.swapPending) {
+    previewP2 = getPreviewDamage(battle.p2, battle.p2.selectedMove, battle.p1);
+    previewHealP2 = getPreviewHeal(battle.p2, battle.p2.selectedMove);
+  }
+  renderPanel(battle.p1, 'p1-panel', previewP2, previewHealP1);
+  renderPanel(battle.p2, 'p2-panel', previewP1, previewHealP2);
+  document.getElementById('battle-log').innerHTML=battle.log.map(l=>`<div>${l}</div>`).join('');
+  let lb=document.getElementById('lock-btn'),rd=document.getElementById('turn-resolution');
+  let sb=document.getElementById('next-step-btn'),tb=document.getElementById('next-turn-btn');
+  let row=document.querySelector('.resolution-row');
+  if(battle.phase==='turnEnded'){lb.style.display='none';rd.style.display='block';row.style.display='none';sb.style.display='none';tb.style.display='inline-block';return;}
+  if(battle.phase==='selectP1'||battle.phase==='selectP2'){lb.style.display='inline-block';rd.style.display='none';row.style.display='none';let p=battle.phase==='selectP1'?battle.p1:battle.p2;lb.textContent=`🔒 Lock In (${p.name})`;lb.disabled=p.active.dead||!(p.selectedMove&&!p.swapPending);}
+  else if(battle.phase==='resolve'){lb.style.display='none';rd.style.display='block';row.style.display='flex';sb.style.display='inline-block';tb.style.display='none';let t=battle.timeline.length;sb.textContent=`Next Step (${battle.timelineIdx}/${t})`;if(battle.timelineIdx===0)document.getElementById('step-log').innerHTML='';}
+  else if(battle.phase==='replace'){lb.style.display='none';rd.style.display='none';showReplaceOverlay(battle.needsReplacement);}
+  if(battle.aiMode && battle.phase==='selectP2' && !battle.p2.locked && !battle.p2.swapPending) setTimeout(()=>aiDoTurn(), 300);
+}
+
+function renderPanel(player,panelId, previewDamage = 0, previewHeal = 0){
+  let d=player.active;if(!d)return;
+  let origMax=d.maxHp;
+  let fillPct=Math.round(d.hp/origMax*100);
+  let woundPct=d.wound>0?Math.round(d.wound/origMax*100):0;
+  let isMyTurn=(battle.phase==='selectP1'&&player===battle.p1)||(battle.phase==='selectP2'&&player===battle.p2);
+  let movesH='';
+  if(d.dead){movesH='<span style="color:#c0392b;font-weight:bold">DEAD</span>';}
+  else{let mv=battle.getMoves(player);movesH=mv.map(m=>{let cls=[];if(m.blocked)cls.push('swap-blocked');if(!player.locked&&player.selectedMove&&player.selectedMove.id===m.id)cls.push('selected');if(player.locked||!isMyTurn||m.cdLeft>0||m.blocked)cls.push('disabled');let cd=m.cdLeft>0?`<span class="cooldown-num">${m.cdLeft}</span>`:'';      const safeId = m.id.replace(/'/g, "\\'");
+      return`<button class="move-btn ${cls.join(' ')}" onclick="selectMove('${player.name}','${safeId}')" ${(player.locked||!isMyTurn||m.cdLeft>0||m.blocked)?'disabled':''}>${m.name}${cd}<span class="move-desc">${m.desc||''}</span></button>`;}).join('');}
+  let backH='';
+  if(!d.dead&&player.swapPending&&isMyTurn){
+    backH = player.backup.map((b,i)=>{
+      const hl = player.swapTargetIdx === i ? 'highlight' : '';
+      const abilNames = b.activeAbilities.map(a=>a.n).join(', ') || 'None';
+      const miniHP = Math.round(b.hp/b.maxHpEff*100);
+      const miniImg = b.img || PLACEHOLDER_IMG;
+      return `<button class="backup-select ${hl}" onclick="selectSwapTarget('${player.name}',${i})" style="display:flex;flex-direction:column;align-items:start;text-align:left;padding:4px;width:100%;">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <img src="${miniImg}" style="width:40px; height:40px; border-radius:6px; border:1px solid #8b6b3c; background:#faf3e4; flex-shrink:0;" />
+          <div>
+            <div><span class="role-icon">${roleEmoji(b.r)}</span> <b>${b.n}</b> <span style="font-size:0.65rem">${b.r}</span></div>
+            <div style="font-size:0.6rem">⚡${b.spd} ⚔️${b.atk} 🛡️${b.def} | HP ${b.hp}/${b.maxHpEff} (${miniHP}%)</div>
+          </div>
+        </div>
+        <div style="font-size:0.55rem;color:#6b5a3e; margin-top:2px;">Abilities: ${abilNames}</div>
+        <div style="font-size:0.5rem;color:#888">Passive: ${b.passive||'None'}</div>
+      </button>`;
+    }).join('');
+    backH = `<div>Pick swap target:</div>${backH}`;
+    } else if(player.backup.length > 0){
+    let bk=player.backup.map(b=>`<span class="stat">${b.n}(${b.hp}/${b.maxHpEff})</span>`).join(' ');
+    backH=`<div><b>Backup:</b> ${bk} ${player.lockdown?'|🔒'+player.lockdown.n:''}</div>`;
+  }
+  let effH=d.gatherEffects().map(e=>`<span class="stat">${e}</span>`).join(' ');
+  let dmgFlashW=0;if(d.lastHp>d.hp){dmgFlashW=Math.round((d.lastHp-d.hp)/origMax*100);}
+  // Heal preview overlay (pink)
+  let healPreviewOverlay = '';
+  if (previewHeal > 0 && !d.dead) {
+    const healPct = Math.min((previewHeal / origMax) * 100, 100 - fillPct);
+        healPreviewOverlay = `<div style="position:absolute; left:${fillPct}%; top:0; width:${healPct}%; height:100%; background:rgba(255,20,147,0.7); pointer-events:none; border-radius: 0 5px 5px 0;"></div>`;
+  }
+
+  // Heal flash overlay (what was actually healed last move)
+  let healFlashOverlay = '';
+  if (d.lastHeal > 0) {
+    const healFlashPct = Math.min((d.lastHeal / origMax) * 100, 100 - fillPct);
+        const healFlashLeft = Math.max(0, fillPct - healFlashPct);
+        healFlashOverlay = `<div style="position:absolute; left:${healFlashLeft}%; top:0; width:${healFlashPct}%; height:100%; background:rgba(255,105,180,0.9); pointer-events:none; border-radius: 0 5px 5px 0;"></div>`;
+  }
+  let previewOverlay = '';
+  if (previewDamage > 0 && !d.dead) {
+    const remainingHp = Math.max(0, d.hp - previewDamage);
+    const remainingPct = (remainingHp / origMax) * 100;
+    const damagePct = (previewDamage / origMax) * 100;
+    const left = remainingPct;
+    const width = damagePct;
+    previewOverlay = `<div style="position:absolute; left:${left}%; top:0; width:${width}%; height:100%; background:rgba(255,255,0,0.5); pointer-events:none; border-radius: 0 5px 5px 0;"></div>`;
+  }
+
+    const imgId = panelId === 'p1-panel' ? 'p1-img' : 'p2-img';
+  const externalImg = document.getElementById(imgId);
+  if (externalImg) {
+    externalImg.src = d.img || PLACEHOLDER_IMG;
+    // Remove any fixed width/height attributes so the container controls the size
+    externalImg.style.width = 'auto';
+    externalImg.style.height = 'auto';
+  }
+
+  document.getElementById(panelId).innerHTML=`
+    <div class="flex"><span class="role-icon">${roleEmoji(d.r)}</span><b><span class="${rarityClass(d.tier)}">${d.n}</span></b> <small>${d.r}</small> ${player.locked?'🔒':''} ${d.dead?'<span style="color:#c0392b">DEAD</span>':''}</div>
+        <div class="flex">
+      <span class="stat">⚡${d.currentSpd}${d.spdMod !== 0 ? ` <span style="font-size:0.55rem;color:${d.spdMod>0?'green':'red'};">(${d.spdMod>0?'+':''}${d.spdMod}%)</span>` : ''}</span>
+      <span class="stat">⚔️${d.currentAtk}${d.atkMod !== 0 ? ` <span style="font-size:0.55rem;color:${d.atkMod>0?'green':'red'};">(${d.atkMod>0?'+':''}${d.atkMod}%)</span>` : ''}</span>
+      <span class="stat">🛡️${d.currentDef}${d.defMod !== 0 ? ` <span style="font-size:0.55rem;color:${d.defMod>0?'green':'red'};">(${d.defMod>0?'+':''}${d.defMod}%)</span>` : ''}</span>
+    </div>
+    <div class="hp-bar-outer" style="position:relative">
+      <div class="hp-fill" style="width:${fillPct}%;background:${fillPct<30?'#c0392b':fillPct<60?'#d6b17e':'#4caf50'}"></div>
+      ${woundPct>0?`<div class="hp-wound" style="width:${woundPct}%"></div>`:''}
+      ${dmgFlashW>0?`<div class="hp-dmg-flash" style="width:${dmgFlashW}%;left:${fillPct}%"></div>`:''}
+      ${previewOverlay}
+      ${healPreviewOverlay}
+      ${healFlashOverlay}
+    </div>
+    <div style="font-size:0.65rem">HP:${d.hp}/${d.maxHpEff}${d.wound?' (Wound:'+d.wound+')':''}${previewDamage>0?` <span style="color:#b38b2a">(-${previewDamage})</span>`:''}</div>
+    <div><b>Moves:</b><div style="display:flex;flex-wrap:wrap;gap:3px">${movesH}</div></div>
+    <div><b>Passive:</b> <small>${d.passive||'None'}</small></div>
+    <div><b>Effects:</b> ${effH}</div>${backH}`;
+  d.lastHp=d.hp;
+  d.lastHeal = 0;
+}
+
+function selectMove(pn,mid){if(!battle)return;let p=pn===battle.p1.name?battle.p1:battle.p2;battle.selectMove(p,mid);}
+function selectSwapTarget(pn,idx){if(!battle)return;let p=pn===battle.p1.name?battle.p1:battle.p2;battle.selectSwapTarget(p,idx);updateUI();}
+function lockIn(){if(!battle)return;if(battle.phase==='selectP1')battle.lockIn(battle.p1);else if(battle.phase==='selectP2')battle.lockIn(battle.p2);}
+function nextStep(){
+  if(!battle||battle.phase!=='resolve') return;
+  // If a player needs to pick a swap target mid‑turn, show the overlay and pause
+  if(battle.swapChoicePlayer){
+    showSwapChoiceOverlay(battle.swapChoicePlayer);
+    return;
+  }
+  if(battle.timelineIdx>=battle.timeline.length) return;
+  let e=battle.timeline[battle.timelineIdx];
+  let det=e.action?e.action():[];
+  let sl=document.getElementById('step-log');
+  let txt=e.desc;if(det.length)txt+='\n'+det.map(l=>'  '+l).join('\n');
+  sl.innerHTML+=`<div style="white-space:pre-wrap">${txt}</div>`;sl.scrollTop=sl.scrollHeight;
+  battle.timelineIdx++;renderPanel(battle.p1,'p1-panel');renderPanel(battle.p2,'p2-panel');
+  if(battle.timelineIdx>=battle.timeline.length){
+    if (!battle.gameOver) battle.phase = 'turnEnded';
+    else battle.phase = 'end';
+    document.getElementById('next-step-btn').style.display='none';
+    if(battle.phase==='end'){document.getElementById('turn-resolution').style.display='none';updateUI();}
+    else{document.getElementById('next-turn-btn').style.display='inline-block';updateUI();}
+  }else{let t=battle.timeline.length;document.getElementById('next-step-btn').textContent=`Next Step (${battle.timelineIdx}/${t})`;}
+}
+function checkGameOver() {
+  if (!battle || battle.gameOver) return;
+  // If a player's active is dead and they have no backups and no lockdown -> game over
+  [battle.p1, battle.p2].forEach(player => {
+    let opp = player === battle.p1 ? battle.p2 : battle.p1;
+    if (player.active && player.active.dead && player.backup.length === 0 && !player.lockdown) {
+      battle.gameOver = true;
+      battle.winner = opp.name;
+    }
+  });
+}
+function nextTurn(){
+  if(!battle)return;
+  if(battle.needsReplacement){
+    if(battle.aiMode && battle.needsReplacement.name===battle.p2.name){
+      if(battle.p2.backup.length>0){battle.p2.active=battle.p2.backup.splice(0,1)[0];battle.needsReplacement=null;battle.phase='selectP1';updateUI();}
+      else{ battle.phase='end'; updateUI(); }
+      return;
+    }
+    battle.phase='replace';showReplaceOverlay(battle.needsReplacement);document.getElementById('next-turn-btn').style.display='none';document.getElementById('turn-resolution').style.display='none';return;
+  }
+  battle.phase='selectP1';document.getElementById('step-log').innerHTML='';document.getElementById('turn-resolution').style.display='none';document.getElementById('next-turn-btn').style.display='none';updateUI();
+}
+function showReplaceOverlay(player){
+  document.getElementById('replace-overlay').style.display='flex';
+  document.getElementById('replace-msg').textContent=`${player.name}, choose replacement:`;
+  document.getElementById('replace-options').innerHTML=player.backup.map((d,i)=>`<button class="move-btn" onclick="replaceDino('${player.name}',${i})">${roleEmoji(d.r)} ${d.n}(${d.hp}/${d.maxHpEff})</button>`).join('');
+}
+function replaceDino(pn,idx){
+  if(!battle||battle.phase!=='replace')return;
+  let p=pn===battle.p1.name?battle.p1:battle.p2;
+  p.active=p.backup.splice(idx,1)[0];battle.needsReplacement=null;battle.phase='selectP1';
+  document.getElementById('replace-overlay').style.display='none';updateUI();
+}
+
+// Help
+function showHelp(){
+  document.getElementById('help-overlay').style.display='flex';
+}
+function closeHelp(){
+  document.getElementById('help-overlay').style.display='none';
+}
+
+window.onload=function(){
+  document.getElementById('confirm-names-btn')?.addEventListener('click', confirmNames);
+  document.getElementById('skip-names-btn')?.addEventListener('click', ()=>{setup.p1Name='P1';setup.p2Name='P2';document.getElementById('name-input-screen').style.display='none';showRarityScreen();});
+  document.getElementById('start-btn')?.addEventListener('click', buildDecks);
+  document.getElementById('lock-btn')?.addEventListener('click', lockIn);
+  document.getElementById('next-step-btn')?.addEventListener('click', nextStep);
+  document.getElementById('next-turn-btn')?.addEventListener('click', nextTurn);
+  document.getElementById('ai-confirm-name-btn')?.addEventListener('click', ()=>{
+    let n=document.getElementById('ai-p1-name-input').value.trim();
+    if(n)setup.p1Name=n;
+    document.getElementById('ai-name-screen').style.display='none';
+    showRarityScreen();
+  });
+};
+function showCatalog() {
+  document.getElementById('title-screen').style.display = 'none';
+  document.getElementById('catalog-screen').style.display = 'block';
+  renderCatalog();
+}
+
+function renderCatalog() {
+  const sorted = [...DB].sort((a,b) => a.n.localeCompare(b.n));
+  let html = '';
+  sorted.forEach(d => {
+    const abilList = d.active ? d.active.map(a =>
+      `<span style="font-size:0.7rem;">• <b>${a.n}</b> (CD ${a.cd}) – ${a.desc}</span>`
+    ).join('<br>') : 'Strike only';
+    const passiveText = d.passive || 'None';
+    const imgSrc = d.img || PLACEHOLDER_IMG;
+    html += `
+      <div class="card" style="display:flex; gap:10px; align-items:center;">
+        <img src="${imgSrc}" style="width:80px; height:80px; object-fit:contain; border-radius:10px; border:2px solid #8b6b3c; background:#faf3e4; flex-shrink:0;" />
+        <div style="flex:1;">
+          <div style="font-size:1rem;"><span class="${rarityClass(d.tier)}">${d.n}</span> ${roleEmoji(d.r)} ${d.r} (${d.tier})</div>
+          <div style="font-size:0.75rem;">⚡${d.s} ⚔️${d.a} 🛡️${d.d} ❤️${d.h}</div>
+          <div style="font-size:0.7rem; color:#5a4a3a; margin-top:4px;"><b>Passive:</b> ${passiveText}</div>
+          <div style="font-size:0.65rem; color:#3e2e1a; margin-top:2px; font-style:italic;">📘 ${d.desc || ''}</div>
+          <div style="font-size:0.7rem; margin-top:2px;"><b>Abilities:</b><br>${abilList}</div>
+        </div>
+      </div>`;
+  });
+  document.getElementById('catalog-list').innerHTML = html;
+}
+
+function showTitleScreen() {
+  document.getElementById('catalog-screen').style.display = 'none';
+  document.getElementById('title-screen').style.display = 'block';
+}
+function showSwapChoiceOverlay(player){
+  // Show a small overlay with backup choices
+  let overlay = document.createElement('div');
+  overlay.id = 'swap-choice-overlay';
+  overlay.className = 'overlay';
+  overlay.style.display = 'flex';
+  overlay.innerHTML = `<div class="overlay-box"><h2>Pick a swap target</h2><div id="swap-choice-options"></div></div>`;
+  document.body.appendChild(overlay);
+  let optsDiv = document.getElementById('swap-choice-options');
+  optsDiv.innerHTML = player.backup.map((d,i) => `<button class="move-btn" onclick="swapChoicePicked('${player.name}',${i})">${roleEmoji(d.r)} ${d.n}(${d.hp}/${d.maxHpEff})</button>`).join('');
+}
+
+function swapChoicePicked(pn, idx){
+  let player = pn===battle.p1.name ? battle.p1 : battle.p2;
+  if (!player || !battle.swapChoicePlayer) return;
+  // Perform the swap
+  let nd = player.backup.splice(idx,1)[0];
+  player.lockdown = player.active;
+  player.active = nd;
+    battle.logMsg(`${player.name} swapped to ${player.active.n} via ability.`, player, player.active.n);
+  // Remove overlay and resume
+  let overlay = document.getElementById('swap-choice-overlay');
+  if(overlay) overlay.remove();
+  battle.swapChoicePlayer = null;
+  // Update UI and resume the step that was pending
+  updateUI();
+  // Continue with the next step
+  nextStep();
+}
+// ==================== UNIVERSAL BUTTON CLICK SOUND ====================
+// Replace this URL with your own if you ever change the file
+const CLICK_SOUND_URL = "https://files.catbox.moe/fcitpz.wav";
+
+let clickAudio = null;
+
+function initClickSound() {
+  try {
+    clickAudio = new Audio(CLICK_SOUND_URL);
+    clickAudio.volume = 1;   // 0.0 = silent, 1.0 = full volume
+  } catch(e) {
+    // Audio not available – game still works fine without sound
+  }
+}
+
+function playClickSound() {
+  if (clickAudio) {
+    clickAudio.currentTime = 0;   // restart the sound for rapid clicks
+    clickAudio.play().catch(() => {});
+  }
+}
+
+// Listen for clicks on any button, anywhere on the page
+document.addEventListener('click', function(e) {
+  let target = e.target;
+  while (target && target !== document.body) {
+    if (target.tagName === 'BUTTON' || target.classList.contains('btn') || target.classList.contains('move-btn')) {
+      playClickSound();
+      break;
+    }
+    target = target.parentElement;
+  }
+});
+
+// Initialise the audio when the page loads
+window.addEventListener('DOMContentLoaded', initClickSound);
+function showModeScreen() {
+  document.getElementById('title-screen').style.display = 'none';
+  document.getElementById('mode-screen').style.display = 'block';
+}
+function switchLayout() {
+  const battleScreen = document.getElementById('battle-screen');
+  const toggle = document.getElementById('layout-toggle');
+  if (toggle.checked) {
+    battleScreen.classList.add('layout-phone');
+  } else {
+    battleScreen.classList.remove('layout-phone');
+  }
+}
+</script>
+</body>
+</html>
