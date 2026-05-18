@@ -36,12 +36,17 @@ wss.on('connection', (ws) => {
       ws.send(JSON.stringify({ type: 'joined', code, seed: room.seed }));
     }
 
-    else if (msg.type === 'setTeam') {
+        else if (msg.type === 'setTeam') {
       const room = rooms[ws.room];
       if (!room) return;
+      // Store the player’s team
+      if (!room.teams) room.teams = [];
+      room.teams[ws.playerIndex] = msg.team;
       room.ready[ws.playerIndex] = true;
       if (room.ready.every(r => r)) {
-        room.players.forEach(p => p.send(JSON.stringify({ type: 'bothReady' })));
+        // Send each player the opponent’s team
+        room.players[0].send(JSON.stringify({ type: 'bothReady', opponentTeam: room.teams[1] }));
+        room.players[1].send(JSON.stringify({ type: 'bothReady', opponentTeam: room.teams[0] }));
       }
     }
 
