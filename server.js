@@ -49,11 +49,23 @@ wss.on('connection', (ws) => {
         room.players[1].send(JSON.stringify({ type: 'bothReady', opponentTeam: room.teams[0] }));
       }
     }
-    else if (msg.type === 'replace') {
+            else if (msg.type === 'replace') {
       const room = rooms[ws.room];
       if (!room) return;
+      // Store the replacement choice for this player
+      if (!room.replaces) room.replaces = {};
+      room.replaces[ws.playerIndex] = msg.index;
+      // Send the replacement info to the opponent
       const opponent = room.players[1 - ws.playerIndex];
-      if (opponent) opponent.send(JSON.stringify({ type: 'opponentReplace', index: msg.index }));
+      if (opponent) opponent.send(JSON.stringify({ type: 'opponentReplace', index: msg.index, playerIndex: ws.playerIndex }));
+
+      // When both players have chosen their replacements (or only one needed), clear and advance
+      const neededCount = room.players.filter((p, i) => room.replaces[i] !== undefined).length;
+      const totalNeeded = room.players.length; // both might need a replacement
+      if (neededCount === totalNeeded) {
+        room.replaces = {};
+        room.players.forEach(p => p.send(JSON.stringify({ type: 'replacementsDone' })));
+      }
     }
     else if (msg.type === 'nextTurn') {
       const room = rooms[ws.room];
