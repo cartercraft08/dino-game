@@ -50,11 +50,18 @@ wss.on('connection', (ws) => {
       }
     }
 
-    else if (msg.type === 'move') {
+        else if (msg.type === 'move') {
       const room = rooms[ws.room];
       if (!room) return;
-      const opponent = room.players[1 - ws.playerIndex];
-      if (opponent) opponent.send(JSON.stringify({ type: 'opponentMove', move: msg.move }));
+      // Store the move for this player
+      if (!room.moves) room.moves = {};
+      room.moves[ws.playerIndex] = msg.move;
+      // When both moves are in, send them to both players
+      if (Object.keys(room.moves).length === 2) {
+        room.players[0].send(JSON.stringify({ type: 'turnResolve', opponentMove: room.moves[1] }));
+        room.players[1].send(JSON.stringify({ type: 'turnResolve', opponentMove: room.moves[0] }));
+        room.moves = {}; // clear for next turn
+      }
     }
   });
 
