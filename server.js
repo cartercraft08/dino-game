@@ -49,6 +49,12 @@ wss.on('connection', (ws) => {
         room.players[1].send(JSON.stringify({ type: 'bothReady', opponentTeam: room.teams[0] }));
       }
     }
+    else if (msg.type === 'replace') {
+      const room = rooms[ws.room];
+      if (!room) return;
+      const opponent = room.players[1 - ws.playerIndex];
+      if (opponent) opponent.send(JSON.stringify({ type: 'opponentReplace', index: msg.index }));
+    }
 
         else if (msg.type === 'move') {
       const room = rooms[ws.room];
