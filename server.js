@@ -55,7 +55,17 @@ wss.on('connection', (ws) => {
       const opponent = room.players[1 - ws.playerIndex];
       if (opponent) opponent.send(JSON.stringify({ type: 'opponentReplace', index: msg.index }));
     }
-
+    else if (msg.type === 'nextTurn') {
+      const room = rooms[ws.room];
+      if (!room) return;
+      if (!room.nextTurnReady) room.nextTurnReady = {};
+      room.nextTurnReady[ws.playerIndex] = true;
+      if (Object.keys(room.nextTurnReady).length === 2) {
+        // Both players are ready for the next turn
+        room.players.forEach(p => p.send(JSON.stringify({ type: 'turnAdvance' })));
+        room.nextTurnReady = {};
+      }
+    }
         else if (msg.type === 'move') {
       const room = rooms[ws.room];
       if (!room) return;
