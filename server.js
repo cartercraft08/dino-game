@@ -67,6 +67,12 @@ wss.on('connection', (ws) => {
         room.players.forEach(p => p.send(JSON.stringify({ type: 'replacementsDone' })));
       }
     }
+                  else if (msg.type === 'swapTarget') {
+      const room = rooms[ws.room];
+      if (!room) return;
+      const opponent = room.players[1 - ws.playerIndex];
+      if (opponent) opponent.send(JSON.stringify({ type: 'opponentSwapTarget', index: msg.index }));
+    }
     else if (msg.type === 'nextTurn') {
       const room = rooms[ws.room];
       if (!room) return;
